@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "minimum_required_version": 1,
+  "actions": [
+    { "name": "/actions/main/in/PoseLeft", "type": "pose", "requirement": "optional" },
+    { "name": "/actions/main/in/PoseRight", "type": "pose", "requirement": "optional" },
+    { "name": "/actions/main/in/TriggerLeft", "type": "boolean", "requirement": "optional" },
+    { "name": "/actions/main/in/TriggerRight", "type": "boolean", "requirement": "optional" },
+    { "name": "/actions/main/in/GripLeft", "type": "boolean", "requirement": "optional" },
+    { "name": "/actions/main/in/GripRight", "type": "boolean", "requirement": "optional" },
+    { "name": "/actions/main/in/Move", "type": "vector2", "requirement": "optional" },
+    { "name": "/actions/main/in/Turn", "type": "vector2", "requirement": "optional" },
+    { "name": "/actions/main/in/ButtonA", "type": "boolean", "requirement": "optional" },
+    { "name": "/actions/main/in/ButtonB", "type": "boolean", "requirement": "optional" },
+    { "name": "/actions/main/in/ButtonX", "type": "boolean", "requirement": "optional" },
+    { "name": "/actions/main/in/ButtonY", "type": "boolean", "requirement": "optional" },
+    { "name": "/actions/main/in/StickClickLeft", "type": "boolean", "requirement": "optional" },
+    { "name": "/actions/main/in/StickClickRight", "type": "boolean", "requirement": "optional" }
+  ],
+  "action_sets": [
+    { "name": "/actions/main", "usage": "leftright" }
+  ],
+  "default_bindings": [
+    { "controller_type": "oculus_touch", "binding_url": "nuclearesvr_bindings_oculus_touch.json" }
+  ],
+  "localization": [
+    {
+      "language_tag": "en_US",
+      "/actions/main": "Nucleares VR",
+      "/actions/main/in/PoseLeft": "Left hand pointer",
+      "/actions/main/in/PoseRight": "Right hand pointer",
+      "/actions/main/in/TriggerLeft": "Left click",
+      "/actions/main/in/TriggerRight": "Right click",
+      "/actions/main/in/GripLeft": "Left grip",
+      "/actions/main/in/GripRight": "Right grip",
+      "/actions/main/in/Move": "Move",
+      "/actions/main/in/Turn": "Turn",
+      "/actions/main/in/ButtonA": "Button A",
+      "/actions/main/in/ButtonB": "Button B",
+      "/actions/main/in/ButtonX": "Button X",
+      "/actions/main/in/ButtonY": "Button Y",
+      "/actions/main/in/StickClickLeft": "Left stick click",
+      "/actions/main/in/StickClickRight": "Right stick click"
+    }
+  ]
+}

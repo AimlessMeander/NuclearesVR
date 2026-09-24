@@ -1,4 +1,5 @@
 using BepInEx;
+using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 using UnityEngine.SceneManagement;
@@ -13,12 +14,15 @@ namespace NuclearesVR
         public const string Version = "0.1.0";
 
         internal static new ManualLogSource Logger;
+        internal static ConfigEntry<float> PointerPitchDegrees;
 
         private Harmony _harmony;
 
         private void Awake()
         {
             Logger = base.Logger;
+            PointerPitchDegrees = Config.Bind("Controllers", "PointerPitchDegrees", 0f,
+                "Tilts the pointer laser up (+) or down (-) relative to the controller's pointing pose, in degrees.");
             Logger.LogInfo($"{Name} {Version} loading...");
 
             _harmony = new Harmony(Guid);

@@ -101,11 +101,20 @@
     </None>
   </ItemGroup>
 
+  <!-- SteamVR Input action manifest and default bindings, loaded from next to the DLL -->
+  <ItemGroup>
+    <None Include="Input\*.json">
+      <Link>%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
   <!-- Deploy straight into the game's BepInEx/plugins folder after each build -->
   <Target Name="DeployToGame" AfterTargets="Build" Condition="Exists('$(GameDir)\BepInEx\plugins')">
     <ItemGroup>
       <DeployFiles Include="$(OutDir)NuclearesVR.dll" />
       <DeployFiles Include="$(OutDir)openvr_api.dll" />
+      <DeployFiles Include="$(OutDir)nuclearesvr_*.json" />
     </ItemGroup>
     <MakeDir Directories="$(GameDir)\BepInEx\plugins\NuclearesVR" />
     <Copy SourceFiles="@(DeployFiles)" DestinationFolder="$(GameDir)\BepInEx\plugins\NuclearesVR" />

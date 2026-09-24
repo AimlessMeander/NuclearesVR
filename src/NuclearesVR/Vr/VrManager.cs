@@ -150,6 +150,7 @@ namespace NuclearesVR.Vr
             if (_mirrorQuad != null) _mirrorQuad.SetActive(false);
             if (_cursorArrow != null) _cursorArrow.SetActive(false);
             if (_worldMarker != null) _worldMarker.SetActive(false);
+            HideHands();
             DestroyEyeCameras();
             _mainCamera = null;
             _rotationApplied = false;
@@ -216,6 +217,7 @@ namespace NuclearesVR.Vr
                 }
 
                 SetUpMirrorScreen();
+                InitVrInput();
                 StartCoroutine(SubmitLoop());
                 _noPlayerSince = -1f;
                 _active = true;
@@ -715,6 +717,8 @@ namespace NuclearesVR.Vr
                 // AlreadySubmitted errors and SteamVR's "waiting" screen.
                 OpenVR.Compositor.WaitGetPoses(_renderPoses, EmptyPoseArray);
 
+                UpdateVrInput();
+
                 var playerLook = PlayerLook.Instancia;
                 if (playerLook == null)
                 {
@@ -764,6 +768,8 @@ namespace NuclearesVR.Vr
                 // Position: the game never touches localPosition per-frame, so we
                 // track our own cached base instead of accumulating.
                 _mainCamera.transform.localPosition = _baseLocalPosition + deltaPos;
+
+                PositionHands();
 
                 // After head tracking, so the click ray below uses the same
                 // camera pose the game will use for the actual click.
