@@ -21,7 +21,15 @@ Working, tested on hardware (Quest-class headset over Steam Link / SteamVR):
 
 Monitor text (was the big open problem) is fixed: see "The monitor problem" below.
 
-Not started: motion controllers (phase 2), per-eye shadow differences (cosmetic).
+Motion controllers (Quest 3 tested; other controllers via SteamVR's binding screen):
+- A laser per hand; the last hand to pull its trigger is the active pointer. Trigger clicks; hold the
+  trigger and move the hand to turn dials and move sliders and valves.
+- Left stick walks (in the direction the head faces), right stick turns smoothly.
+- Buttons map to keys (defaults: A flashlight, B tablet, Y menu, left stick click run).
+- On the pause menu the controller is the mouse cursor on the virtual screen.
+
+Not done: pointing at the tablet's own screen has not been specifically tested; per-eye shadow
+differences (cosmetic).
 
 ## Build and install
 
@@ -101,16 +109,29 @@ frustum, material). Earlier experiments that changed nothing (emission, depth pr
 unlit text, glass, text depth test) were all sound tests of the wrong things; the depth-test one never
 applied because the lit text shader has no `unity_GUIZTestMode` property.
 
-## Roadmap: motion controllers (phase 2, not started)
+## Motion controllers: how it works
 
-- Every interactable (`ObjetoInteractuable`) already has `HandTarget`s and left/right hand gesture
-  animation; drive those from real controller poses.
-- Interaction today is Unity's `OnMouseDown`/`OnMouseEnter`, which raycasts from the camera through the
-  locked cursor and cannot be redirected to a controller. Controllers need their own raycast (or touch
-  test) and a call into the same effect: e.g. the private `OnClic` `UnityEvent` on `DetectorDeClic`, plus
-  per-type handling for drag controls (`InterruptorPalanca`, `Regulador`, `ReguladorVertical`,
-  `PalancaMecanica`, valves).
-- Networking is Photon Fusion (co-op); camera and interaction should stay client-local.
+- **Input:** SteamVR Input. `src/NuclearesVR/Input/*.json` (action manifest and default Oculus Touch
+  bindings) are copied next to the DLL. Remap or add other controllers in SteamVR's binding screen for
+  "Nucleares VR". Poses use the `pose/tip` path; `PointerPitchDegrees` in the config tilts the pointer.
+- **Pointing and clicking** (`VrManager.Pointing.cs`): everything interactive in the game is Unity's
+  `OnMouseEnter/Down` (a raycast from the camera through the mouse position). So the OS cursor is held at
+  the window centre, the game camera is moved to the active controller at the end of each frame (after
+  rendering) so Unity's mouse handling at the start of the next frame aims from there, and it is put back
+  before the game's scripts run. The trigger sends a real left mouse button press.
+- **Dragging:** while the trigger is held, `Input.mousePosition` is offset by the hand's movement
+  (dead zone 1.5 cm, `DragPixelsPerMeter`), which all the dials, sliders and valves read.
+- **Keys and turning:** Harmony postfixes on `Input.GetKey/GetKeyDown/GetKeyUp`, `GetAxis(Raw)` ("Mouse X"
+  for turning), `Input.mousePosition` and `Interface.CTeclas.SinPosicionar` (the instant-activation
+  shortcut, "hold shift to skip the hand animation") in `VrKeys.cs`. Edges are stamped with the frame the
+  game will read them in.
+- **Walking where the head faces:** while moving, the body is turned to the head's heading and the same
+  angle is removed from the head mapping (`_yawAdjust`) so the view does not change.
+- **Menu:** the ray is intersected with the virtual screen quad and converted to a desktop pixel for the
+  OS cursor.
+- Config: `BepInEx/config/com.mjh.nuclearesvr.cfg` (button-to-key mapping, turn speed, drag scale, ...).
+
+Ideas not done: haptics, snap turning, a comfort vignette, hands/arms model, tablet-specific pointing.
 
 ## Project layout
 

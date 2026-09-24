@@ -253,8 +253,8 @@ namespace NuclearesVR.Vr
             {
                 return;
             }
-            var localPos = _baseLocalPosition + Quaternion.Inverse(_zeroRot) * (hand.TrackPos - _zeroPos);
-            var localRot = _savedBaseRotation * (Quaternion.Inverse(_zeroRot) * hand.TrackRot) * pitch;
+            var localPos = _baseLocalPosition + MapPosition(hand.TrackPos);
+            var localRot = _savedBaseRotation * MapRotation(hand.TrackRot) * pitch;
             hand.WorldPos = parent != null ? parent.TransformPoint(localPos) : localPos;
             hand.WorldRot = parent != null ? parent.rotation * localRot : localRot;
         }
@@ -281,6 +281,10 @@ namespace NuclearesVR.Vr
             if (Physics.Raycast(hand.WorldPos, forward, out var hit, LaserMaxLength, ~0, QueryTriggerInteraction.Ignore) && hit.distance > 0.05f)
             {
                 length = hit.distance;
+            }
+            if (_mirrorVisible && TryHitVirtualScreen(hand, out _, out var screenDistance) && screenDistance < length)
+            {
+                length = screenDistance;
             }
             laser.transform.SetPositionAndRotation(hand.WorldPos, hand.WorldRot);
 

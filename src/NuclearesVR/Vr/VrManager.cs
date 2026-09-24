@@ -151,6 +151,7 @@ namespace NuclearesVR.Vr
             if (_cursorArrow != null) _cursorArrow.SetActive(false);
             if (_worldMarker != null) _worldMarker.SetActive(false);
             HideHands();
+            ReleaseControllerActions();
             DestroyEyeCameras();
             _mainCamera = null;
             _rotationApplied = false;
@@ -255,6 +256,8 @@ namespace NuclearesVR.Vr
                 }
             }
 
+            RestorePointerPose();
+
             if (_rotationApplied)
             {
                 if (_mainCamera != null)
@@ -263,6 +266,8 @@ namespace NuclearesVR.Vr
                 }
                 _rotationApplied = false;
             }
+
+            AlignBodyToHead();
 
             // Back at the start menu (no player for a moment): hand the headset
             // back so the menu is a normal 2D window again. The grace period
@@ -628,6 +633,7 @@ namespace NuclearesVR.Vr
             _zeroPos = pos;
             _zeroRot = rot;
             _haveZeroPose = true;
+            _yawAdjust = 0f;
             Plugin.Logger.LogInfo("VR view recentered.");
         }
 
@@ -735,10 +741,14 @@ namespace NuclearesVR.Vr
                     _zeroPos = pos;
                     _zeroRot = rot;
                     _haveZeroPose = true;
+                    _yawAdjust = 0f;
                 }
 
-                var deltaRot = Quaternion.Inverse(_zeroRot) * rot;
-                var deltaPos = Quaternion.Inverse(_zeroRot) * (pos - _zeroPos);
+                // The game's own camera rotation for this frame (before our head offset) is
+                // the base the head mapping is expressed against.
+                _savedBaseRotation = _mainCamera.transform.localRotation;
+                var deltaRot = MapRotation(rot);
+                var deltaPos = MapPosition(pos);
 
                 // Defensive: a bad pose or a math error here sends the camera
                 // somewhere nonsensical (black screen, camera inside geometry)
@@ -769,7 +779,9 @@ namespace NuclearesVR.Vr
                 // track our own cached base instead of accumulating.
                 _mainCamera.transform.localPosition = _baseLocalPosition + deltaPos;
 
+                RememberHeadYaw();
                 PositionHands();
+                UpdateControllerActions();
 
                 // After head tracking, so the click ray below uses the same
                 // camera pose the game will use for the actual click.
@@ -790,6 +802,8 @@ namespace NuclearesVR.Vr
             while (true)
             {
                 yield return new WaitForEndOfFrame();
+
+                ApplyPointerPose();
 
                 if (_mirrorVisible && _mirrorTex != null)
                 {
