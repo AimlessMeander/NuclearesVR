@@ -4,3 +4,4 @@ downloads/
 reference/
 lib/
 *.user
+dist/

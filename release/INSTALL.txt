@@ -1,0 +1,106 @@
+NUCLEARES VR MOD  -  install guide
+=====================================
+
+This is an unofficial mod that lets you play Nucleares (Steam) in a VR headset through SteamVR,
+with head tracking and motion controllers. Nucleares itself has no VR support; this adds it.
+
+WHAT YOU NEED
+-------------
+ * Nucleares, installed from Steam (Windows).
+ * SteamVR (free, on Steam) and a headset that works with it. Quest headsets work through Steam Link,
+   Virtual Desktop, Air Link or a cable. It has been tested with a Quest 3 and its Touch controllers
+   over Steam Link.
+ * A reasonably powerful graphics card. The game is demanding and VR renders it twice.
+
+HOW TO INSTALL (about 2 minutes)
+--------------------------------
+ 1. Find the game folder. In Steam: right-click Nucleares > Manage > Browse local files.
+    It contains "Nucleares.exe".
+ 2. Open the zip you were given. Copy EVERYTHING inside it into that game folder, so that
+    "winhttp.dll" sits next to "Nucleares.exe". If Windows asks about replacing files, say yes.
+ 3. Start the game once from Steam and let it reach the main menu, then quit. This creates the
+    mod's settings file. (You can skip this; it is only needed if you want to change settings.)
+
+That is the whole install. You do not need to install anything else.
+
+HOW TO PLAY IN VR
+-----------------
+ 1. Start SteamVR first and put the headset on (or start Steam Link and connect to your PC).
+ 2. Start Nucleares from Steam (from the desktop, or from inside SteamVR).
+ 3. The start menu is a normal window on your monitor - this is deliberate. Use the mouse to
+    choose your game and load it.
+ 4. When the game loads, VR starts and you are in the control room.
+ 5. If you exit to the main menu, VR switches off again and the menu is back on your monitor.
+
+To play on the monitor without VR, just start the game with SteamVR closed. It will not launch
+SteamVR by itself. (See "VrMode" in the settings if you want different behaviour.)
+
+CONTROLS (Quest / Touch layout)
+-------------------------------
+ Point at things with either controller; a laser shows where you are pointing. The controller you
+ pulled a trigger on last is the one that points.
+
+   Trigger .............. Click. Hold it and move your hand to turn dials and move sliders.
+   Grip (hold) .......... Right mouse button: hold on a gauge or component to see its details in a
+                          panel in front of you; also opens switch covers.
+                          With the grip held, push the left stick forward/back to zoom.
+   Left stick ........... Walk, in the direction your head is facing.
+   Right stick .......... Turn.
+   A .................... Flashlight
+   B .................... Operations tablet
+   Y .................... Menu (pause)
+   Left stick click ..... Run
+   Keyboard: End ........ Recenter the view (do this when you are sitting comfortably).
+
+ Every button can be changed in SteamVR's own controller settings (Devices > Controller
+ Settings > Nucleares > Edit binding), and which game key each button presses can be changed in the
+ settings file (below). Other controllers should work too; set their buttons up in the same SteamVR
+ screen.
+
+SETTINGS
+--------
+ After the first run, the file  BepInEx\config\com.mjh.nuclearesvr.cfg  in the game folder holds the
+ settings. Open it in Notepad. The most useful ones:
+
+   VrMode ............... Auto (default): VR only if SteamVR is already running.
+                          Always: start VR (and SteamVR) when a game loads.  Never: no VR.
+   Msaa ................. Edge smoothing: 1 (off), 2, 4 (default) or 8. Higher looks smoother, runs slower.
+   RenderScale .......... Picture sharpness: 1.0 (default). Try 1.2 - 1.5 for a sharper picture if
+                          your graphics card can take it.
+   TurnSpeed ............ How fast the right stick turns you.
+   WalkTowardsHead ...... true: walk where you look. false: walk where your body faces.
+   InstantActivation .... true: clicks skip the hand animation, like holding Shift.
+   PointerPitchDegrees .. Tilts the laser up or down if it does not feel lined up with your hand.
+   [Buttons] section .... Which keyboard key each controller button presses.
+
+ Close the game before editing, and start it again afterwards.
+
+IF SOMETHING GOES WRONG
+-----------------------
+ * Nothing happens / no VR: make sure SteamVR was running BEFORE you loaded a game, or set VrMode
+   to Always.
+ * The mod does not seem to load at all: check that "winhttp.dll" is next to "Nucleares.exe" and that
+   the folder BepInEx\plugins\NuclearesVR exists. Some antivirus programs wrongly flag winhttp.dll
+   (it is part of BepInEx, the standard mod loader); you may need to allow it.
+ * The mod writes a log to  BepInEx\LogOutput.log  in the game folder. If you ask for help, send
+   that file.
+ * Games with mods can behave differently after a Nucleares update. If the game updates and VR stops
+   working, check for a new version of this mod.
+
+UNINSTALL
+---------
+ Delete the folder  BepInEx  and the files  winhttp.dll,  doorstop_config.ini  and
+ .doorstop_version  from the game folder. (Or, in Steam: right-click Nucleares > Properties >
+ Installed Files > Verify integrity of game files, which puts back the original game.)
+
+ To remove only the VR mod but keep the mod loader, delete  BepInEx\plugins\NuclearesVR.
+
+MULTIPLAYER
+-----------
+ The mod only changes how the game is displayed and controlled on your own PC. It does not change
+ game rules or other players' games. It has mainly been tested in single player.
+
+CREDITS AND LICENCES
+--------------------
+ Built on BepInEx (LGPL-2.1), HarmonyX (MIT) and Valve's OpenVR API (BSD-3-Clause).
+ Not affiliated with the makers of Nucleares (Aerilian Labs) or Valve.
