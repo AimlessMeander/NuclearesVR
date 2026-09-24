@@ -1,109 +1,125 @@
 # NuclearesVR
 
 An unofficial VR mod for [Nucleares](https://store.steampowered.com/app/1428420) (Unity 2022.3.9f1,
-Mono scripting backend), built as a [BepInEx](https://github.com/BepInEx/BepInEx) plugin using the
-OpenVR SDK directly (the game ships with no built-in XR support, so there's no Unity XR pipeline to
-hook into - this mod does its own stereo rendering and pose tracking, the same approach tools like
-[UUVR](https://github.com/Raicuparta/uuvr) use for other unmodified Unity titles).
+Mono scripting backend, built-in render pipeline, Deferred rendering), built as a
+[BepInEx](https://github.com/BepInEx/BepInEx) 5 plugin using the OpenVR SDK directly. The game has no
+XR support, so there is no Unity XR pipeline to hook: the mod adds two extra "eye" cameras, renders
+them to textures, and submits those to SteamVR's compositor itself.
 
 ## Status
 
-**Phase 1: 6DoF head tracking - implemented, not yet tested on hardware.**
+Working, tested on hardware (Quest-class headset over Steam Link / SteamVR):
 
-- Stereo rendering: two extra cameras are attached to the game's existing player camera, each
-  rendering to its own render texture sized to the headset's recommended resolution and submitted
-  to the SteamVR compositor every frame.
-- Head tracking: the HMD's position and orientation are applied *on top of* whatever the game's own
-  mouse-look already set that frame (see "Why additive, not a replacement" below), so mouse/gamepad
-  turning and the game's "focus on this gauge" animation both keep working unmodified.
-- Graceful fallback: if no headset/SteamVR runtime is present, the mod logs that and does nothing
-  further - the game plays exactly as normal.
-- Recenter: press **End** to re-zero the seated/standing calibration point.
+- Stereo rendering and 6DoF head tracking (orientation and position).
+- Main menu, pause menu and dialogs, via a "virtual screen" (see below).
+- Head tracking keeps working while the tablet / focus modes are active.
+- Mouse pointer visible in the headset (arrow on the virtual screen; marker in the world for the
+  tablet and ALT interactive mode).
+- Skybox, trains, torch, red alarm lights.
 
-**Phase 2: motion controllers - not started.** See "Roadmap" below for what's involved.
+**Open, and important: text on some in-game monitors is only visible from certain positions in the
+headset.** See "The monitor problem" below.
 
-## Why additive, not a replacement
+Not started: motion controllers (phase 2), per-eye shadow differences (cosmetic).
 
-`PlayerLook.cs` (the game's look script) recomputes the camera's local rotation from scratch every
-frame from its own internal yaw/pitch state - it doesn't read back whatever the transform currently
-holds. That means we can multiply our own head-tracking delta onto `camera.transform.localRotation`
-in `LateUpdate` (which Unity guarantees runs after every `Update` this frame) without fighting the
-game's own logic or needing any Harmony patches to disable it. This also means the game's own
-"look at this specific object" focus mode (`PlayerLook.Mirar`, used when examining gauges up close)
-keeps working - VR head movement just layers on top of it.
+## Build and install
+
+```powershell
+powershell -File scripts/setup-dependencies.ps1     # once: fills lib/ from your game install
+dotnet build src/NuclearesVR/NuclearesVR.csproj      # also deploys into <game>/BepInEx/plugins
+```
+
+`GameDir` in the `.csproj` and in `setup-dependencies.ps1` defaults to
+`E:\Programs\Steam\steamapps\common\Nuclear Last Darkness` (the install folder really is called that).
+BepInEx 5.4.23.5 is installed in the game folder. Logs: `<game>/BepInEx/LogOutput.log`; Unity's own log:
+`%USERPROFILE%\AppData\LocalLow\Aerilian\Nucleares\Player.log`.
+`reference/` (a decompile of `Assembly-CSharp.dll`, gitignored) is regenerated with
+`ilspycmd -p -o reference/Assembly-CSharp <game>/Nucleares_Data/Managed/Assembly-CSharp.dll`.
+
+## Hotkeys (all Ctrl+Shift+...; diagnostics and experiments, safe to ignore)
+
+| Key | What |
+|---|---|
+| End | Recenter the headset |
+| L | Dump cameras and nearby lights to the log |
+| M | Dump the renderers/materials/UI under your view direction (used for the monitor problem) |
+| R | Toggle Forward / Deferred rendering on the eye cameras (Forward is the default) |
+| K | Toggle stripping spot-light shadows (off by default; crashed the game once, see git history) |
+| T | Toggle unlit swap for lit 3D text (off by default; did not fix the monitors) |
+| G | Experiment: hide glass covers near you (did not fix the monitors) |
+| Y | Experiment: 3D text ignores depth test (did not fix the monitors) |
+
+## How it works, and things learned the hard way
+
+- **Startup:** BepInEx runs the plugin in Nucleares' bootstrap scene, which is torn down almost at
+  once. Anything created there dies. The manager object is created on the first `sceneLoaded`.
+- **SteamVR frame pacing:** `WaitGetPoses` must be called every frame, before any early return.
+  Skipping it gave `DoNotHaveFocus` at the menu and `AlreadySubmitted` + SteamVR's "waiting" screen
+  when the tablet opened.
+- **Pose maths:** OpenVR is right-handed (forward = -Z), Unity left-handed. `VrMath.ToUnity` does a
+  proper similarity transform; per-component sign flips were wrong three times.
+- **Projection:** use the raw OpenVR projection matrix, flip vertically at submit time through
+  `VRTextureBounds_t`. `GL.GetGPUProjectionMatrix` corrupted rendering.
+- **Head tracking vs the game's camera code:** `PlayerLook` only rewrites the camera when the mouse
+  moves, and `Mirar` (focus mode, used by the tablet) slerps from the current rotation. So `VrManager`
+  runs first (execution order -32000), restores the camera's pre-offset rotation, lets the game run,
+  then re-applies the head offset in `LateUpdate`.
+- **Camera settings** (clear flags, culling mask, skybox) are re-synced from the main camera every
+  frame; the game changes them at runtime.
+- **Virtual screen:** menus are Screen Space - Overlay canvases that no camera can see. The mod
+  captures the real monitor output with `ScreenCapture` onto a quad. That quad is on its own layer
+  that only the eye cameras render, otherwise the monitor renders it and the capture feeds back.
+  The capture texture must match the screen size.
+- **Eye cameras render in Forward.** Under Deferred, spot lights (torch, alarms) light nothing for the
+  eye cameras. This is what exposed the monitor problem.
+
+## The monitor problem (unsolved)
+
+In-game monitors such as `Salas/N_SalaControl/SC_Bases/GrupoTerminal/MonitorResumen` show their text
+in the headset only from some positions. It pops on and off abruptly (not a fade), and reveals
+progressively across the screen as you move sideways (moving left reveals right-to-left; moving right
+does not). The monitor view (main camera) is fine. It was fine when the eye cameras used Deferred.
+
+The text is 3D TextMeshPro (`MeshRenderer`) using `TextMeshPro/Distance Field (Surface)`, a lit shader
+the game chose deliberately; the black screen renderers under the monitor (`Servicio`, `Terminal`)
+are disabled, and there is a `TapaCristal` glass-cover renderer in front.
+
+**Ruled out** (each tried on hardware, no change): missing emission; depth-buffer precision (24-bit vs
+32-bit float depth); eye near/far clip planes not following the main camera; lit text shader (swapped
+to the unlit variant); glass cover (hidden); depth test on the text (disabled).
+
+**Not yet tried / ideas:**
+- Does the same text look right in Forward from the *monitor* camera? (Would separate "Forward" from
+  "our custom projection / RT".)
+- Try the eye cameras in Deferred again but fix the spot lights another way, so text is back on the
+  path it worked on. Spot-light shadow stripping fixes the lights but "messed up" the lighting.
+- Frustum/culling: check `Renderer.isVisible` for the text renderers as the head moves; try
+  `Camera.cullingMatrix`, and check LOD groups and `Renderer` bounds on the text meshes.
+- The TextMeshPro SDF shader derives its sharpness from `_ScreenParams` and `UNITY_MATRIX_P`; compare
+  with the eye cameras' render target size and custom projection.
+- Dump the *same* monitor from a position where it works and one where it doesn't and diff
+  (Ctrl+Shift+M does most of this already).
+
+## Roadmap: motion controllers (phase 2, not started)
+
+- Every interactable (`ObjetoInteractuable`) already has `HandTarget`s and left/right hand gesture
+  animation; drive those from real controller poses.
+- Interaction today is Unity's `OnMouseDown`/`OnMouseEnter`, which raycasts from the camera through the
+  locked cursor and cannot be redirected to a controller. Controllers need their own raycast (or touch
+  test) and a call into the same effect: e.g. the private `OnClic` `UnityEvent` on `DetectorDeClic`, plus
+  per-type handling for drag controls (`InterruptorPalanca`, `Regulador`, `ReguladorVertical`,
+  `PalancaMecanica`, valves).
+- Networking is Photon Fusion (co-op); camera and interaction should stay client-local.
 
 ## Project layout
 
 ```
-src/NuclearesVR/          the plugin source
-  Plugin.cs                BepInEx entry point
-  Vr/OpenVR.cs              Valve's official OpenVR C# bindings (vendored, not modified)
-  Vr/VrMath.cs              OpenVR <-> Unity matrix/pose conversions
-  Vr/VrManager.cs           stereo rendering + head tracking
-reference/                 decompiled Assembly-CSharp.dll, for our own analysis only
-                            (gitignored - it's the game's own copyrighted code)
-lib/                       build-time references: game DLLs + BepInEx + OpenVR
-                            (gitignored - see scripts/setup-dependencies.ps1)
-scripts/setup-dependencies.ps1   regenerates lib/ from your local game install
+src/NuclearesVR/            plugin source (partial class VrManager split by concern)
+  Plugin.cs                  BepInEx entry point
+  Vr/OpenVR.cs               Valve's official C# bindings (vendored)
+  Vr/VrMath.cs               OpenVR <-> Unity conversions
+  Vr/VrManager*.cs           stereo rendering, tracking, virtual screen, pointer, effects,
+                             lighting workarounds, diagnostics and experiments
+scripts/setup-dependencies.ps1
+reference/  lib/  downloads/ gitignored (game code, game/BepInEx DLLs, downloaded archives)
 ```
-
-## Building
-
-```powershell
-# One-time, or after a game update changes its DLLs:
-powershell -File scripts/setup-dependencies.ps1
-
-dotnet build src/NuclearesVR/NuclearesVR.csproj
-```
-
-The build automatically copies `NuclearesVR.dll` and `openvr_api.dll` into
-`<game>/BepInEx/plugins/NuclearesVR/` (see the `DeployToGame` target in the `.csproj` - edit the
-`GameDir` property there if your install path differs from
-`E:\Programs\Steam\steamapps\common\Nuclear Last Darkness`).
-
-## Testing
-
-1. Have SteamVR running with your headset connected (this targets OpenVR/SteamVR, so a Quest needs
-   Link or Virtual Desktop with SteamVR set as the OpenXR/OpenVR runtime).
-2. Launch Nucleares normally through Steam.
-3. Check `<game>/BepInEx/LogOutput.log` for `NuclearesVR` lines - it logs whether it found a
-   headset, the render target size it picked, and any errors.
-4. If SteamVR shows a frozen/black view: check the log for the Direct3D11 warning - the frame
-   submission path currently assumes Unity is running on D3D11 (the default on Windows), and would
-   need adjusting for other graphics APIs.
-
-I couldn't launch the game myself to test this end-to-end (this sandbox can't attach to your
-desktop session to run GUI apps), so this first pass is untested against real hardware - expect to
-iterate on it together once you can put the headset on.
-
-## What was already here
-
-The game folder had a stale `doorstop_config.ini`/`winhttp.dll` from an earlier attempt to use
-[Rai Pal](https://github.com/Raicuparta/rai-pal) to install a VR mod, pointing at a BepInEx install
-under `%APPDATA%\raicuparta\...` that no longer exists on this machine. That's been replaced with a
-clean, self-contained BepInEx 5.4.23.5 install inside the game folder itself.
-
-## Roadmap: Phase 2, motion controllers
-
-This is the harder half. Key findings from decompiling `Assembly-CSharp.dll`:
-
-- Every interactable (switches, valves, dials - `ObjetoInteractuable.cs`) already has a `HandTarget`
-  and a `Interface.Manos` (left/right hand) association, plus hand-IK gesture animation toward it.
-  The game already models *which hand reaches where* - we don't need to invent that, just drive it
-  from real controller poses instead of the mouse-click-triggered animation.
-- Interaction is currently driven by Unity's native `OnMouseDown`/`OnMouseEnter`
-  (`DetectorDeClic.cs` and friends), which always raycasts from `Camera.main` through the *locked
-  mouse cursor position* (i.e., a fixed reticle at screen center) - there's no way to make that
-  raycast originate from a controller's position instead, since it's handled by Unity's engine, not
-  script we can redirect.
-- So real controller-based interaction means: our own `Physics.Raycast` (or a direct-touch check)
-  from each controller's tracked pose every frame, and when it hits an `ObjetoInteractuable`,
-  triggering the same effect the mouse click would have - either via reflection into the private
-  `OnClic` `UnityEvent` on `DetectorDeClic`, or small per-type hooks for the drag-based controls
-  (`InterruptorPalanca.cs`, `Regulador.cs`, `ReguladorVertical.cs`, `PalancaMecanica.cs`, valves)
-  that currently compute drag amount from mouse delta and would need to use controller rotation/
-  position delta instead.
-- Networking is Photon Fusion (`PlayerLook`, `PlayerMove` are `NetworkBehaviour`s) for the co-op
-  mode - camera/look and controller interaction should stay client-local and not need any
-  networking changes, but this needs verifying once we're actually driving object state from VR
-  input instead of the mouse.

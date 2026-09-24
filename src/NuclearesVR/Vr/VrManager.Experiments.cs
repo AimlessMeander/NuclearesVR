@@ -1,0 +1,74 @@
+using System.Collections.Generic;
+using System.Linq;
+using TMPro;
+using UnityEngine;
+
+namespace NuclearesVR.Vr
+{
+    /// <summary>
+    /// On/off experiments for the in-game monitor text problem (text visible
+    /// only from some viewpoints in the headset), each aimed at one
+    /// hypothesis. Nothing here is on by default.
+    /// </summary>
+    internal partial class VrManager
+    {
+        private readonly Dictionary<Renderer, bool> _hiddenGlass = new Dictionary<Renderer, bool>();
+        private bool _textZTestAlways;
+
+        // Ctrl+Shift+G: hide (and restore) glass covers within 25m. If the text
+        // becomes stable everywhere, the glass in front of it is the cause.
+        private void ToggleGlass()
+        {
+            if (_hiddenGlass.Count > 0)
+            {
+                foreach (var pair in _hiddenGlass)
+                {
+                    if (pair.Key != null)
+                    {
+                        pair.Key.enabled = pair.Value;
+                    }
+                }
+                Plugin.Logger.LogInfo($"EXPERIMENT: restored {_hiddenGlass.Count} glass renderers.");
+                _hiddenGlass.Clear();
+                return;
+            }
+
+            var origin = _mainCamera != null ? _mainCamera.transform.position : Vector3.zero;
+            foreach (var r in FindObjectsOfType<Renderer>())
+            {
+                var name = r.name.ToLowerInvariant();
+                if ((name.Contains("cristal") || name.Contains("glass") || name.Contains("vidrio")) &&
+                    Vector3.Distance(r.bounds.center, origin) < 25f)
+                {
+                    _hiddenGlass[r] = r.enabled;
+                    r.enabled = false;
+                }
+            }
+            Plugin.Logger.LogInfo($"EXPERIMENT: hid {_hiddenGlass.Count} glass renderers within 25m: " +
+                                  string.Join(", ", _hiddenGlass.Keys.Take(6).Select(r => Path(r.transform)).ToArray()));
+        }
+
+        // Ctrl+Shift+Y: 3D TextMeshPro text ignores the depth test (draws over
+        // anything in front of it). TextMeshPro's shaders read ZTest from the
+        // global "unity_GUIZTestMode" property on the material. If the text
+        // becomes stable everywhere, depth (z-fighting, or something in front
+        // of it winning) is the cause.
+        private void ToggleTextZTest()
+        {
+            _textZTestAlways = !_textZTestAlways;
+            var changed = 0;
+            var seen = new HashSet<Material>();
+            foreach (var text in FindObjectsOfType<TextMeshPro>(true))
+            {
+                var material = text.fontSharedMaterial;
+                if (material != null && seen.Add(material) && material.HasProperty("unity_GUIZTestMode"))
+                {
+                    material.SetInt("unity_GUIZTestMode", _textZTestAlways ? 8 : 4);
+                    changed++;
+                }
+            }
+            Plugin.Logger.LogInfo($"EXPERIMENT: 3D text depth test {(_textZTestAlways ? "OFF (always draws)" : "back to normal")} on {changed} materials " +
+                                  $"({seen.Count} distinct font materials found).");
+        }
+    }
+}

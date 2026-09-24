@@ -36,6 +36,14 @@ namespace NuclearesVR.Vr
                 UnlitMonitorText = !UnlitMonitorText;
                 Plugin.Logger.LogInfo($"Monitor text is now {(UnlitMonitorText ? "unlit" : "lit, as the game has it")}.");
             }
+            if (Input.GetKeyDown(KeyCode.G))
+            {
+                ToggleGlass();
+            }
+            if (Input.GetKeyDown(KeyCode.Y))
+            {
+                ToggleTextZTest();
+            }
             if (Input.GetKeyDown(KeyCode.M))
             {
                 DumpMaterialUnderView();
