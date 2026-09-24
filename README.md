@@ -17,8 +17,7 @@ Working, tested on hardware (Quest-class headset over Steam Link / SteamVR):
   tablet and ALT interactive mode).
 - Skybox, trains, torch, red alarm lights.
 
-**Open, and important: text on some in-game monitors is only visible from certain positions in the
-headset.** See "The monitor problem" below.
+Monitor text (was the big open problem) is fixed: see "The monitor problem" below.
 
 Not started: motion controllers (phase 2), per-eye shadow differences (cosmetic).
 
@@ -47,7 +46,9 @@ BepInEx 5.4.23.5 is installed in the game folder. Logs: `<game>/BepInEx/LogOutpu
 | K | Toggle stripping spot-light shadows (off by default; crashed the game once, see git history) |
 | T | Toggle unlit swap for lit 3D text (off by default; did not fix the monitors) |
 | G | Experiment: hide glass covers near you (did not fix the monitors) |
-| Y | Experiment: 3D text ignores depth test (did not fix the monitors) |
+| Y | Experiment: 3D text ignores depth test (had no effect: the lit text shader lacks that property) |
+| Z | Cycle text draw-order experiments (state 2 is what the automatic fix does) |
+| X | Dump nearby 3D text (visibility, frustum, material) |
 
 ## How it works, and things learned the hard way
 
@@ -73,32 +74,25 @@ BepInEx 5.4.23.5 is installed in the game folder. Logs: `<game>/BepInEx/LogOutpu
 - **Eye cameras render in Forward.** Under Deferred, spot lights (torch, alarms) light nothing for the
   eye cameras. This is what exposed the monitor problem.
 
-## The monitor problem (unsolved)
+## The monitor problem (solved)
 
-In-game monitors such as `Salas/N_SalaControl/SC_Bases/GrupoTerminal/MonitorResumen` show their text
-in the headset only from some positions. It pops on and off abruptly (not a fade), and reveals
-progressively across the screen as you move sideways (moving left reveals right-to-left; moving right
-does not). The monitor view (main camera) is fine. It was fine when the eye cameras used Deferred.
+In-game monitor text (3D TextMeshPro) only showed from some positions in the headset, popping on and
+off and sweeping across the screen as the head moved. The monitor view (main camera) was fine, and it
+was fine when the eye cameras used Deferred.
 
-The text is 3D TextMeshPro (`MeshRenderer`) using `TextMeshPro/Distance Field (Surface)`, a lit shader
-the game chose deliberately; the black screen renderers under the monitor (`Servicio`, `Terminal`)
-are disabled, and there is a `TapaCristal` glass-cover renderer in front.
+**Cause:** the text sits at essentially the same depth as the screen surface behind it. With a depth
+tie the surface drawn last wins, and Forward rendering draws solid objects in a distance-dependent
+order, so the winner changed with head position.
 
-**Ruled out** (each tried on hardware, no change): missing emission; depth-buffer precision (24-bit vs
-32-bit float depth); eye near/far clip planes not following the main camera; lit text shader (swapped
-to the unlit variant); glass cover (hidden); depth test on the text (disabled).
+**Fix** (`VrManager.MonitorText.cs`, `UpdateLateText`): move the 3D text materials to render queue 2500 so
+they always draw after the surface. The game's shader and depth test are otherwise untouched.
 
-**Not yet tried / ideas:**
-- Does the same text look right in Forward from the *monitor* camera? (Would separate "Forward" from
-  "our custom projection / RT".)
-- Try the eye cameras in Deferred again but fix the spot lights another way, so text is back on the
-  path it worked on. Spot-light shadow stripping fixes the lights but "messed up" the lighting.
-- Frustum/culling: check `Renderer.isVisible` for the text renderers as the head moves; try
-  `Camera.cullingMatrix`, and check LOD groups and `Renderer` bounds on the text meshes.
-- The TextMeshPro SDF shader derives its sharpness from `_ScreenParams` and `UNITY_MATRIX_P`; compare
-  with the eye cameras' render target size and custom projection.
-- Dump the *same* monitor from a position where it works and one where it doesn't and diff
-  (Ctrl+Shift+M does most of this already).
+How it was found: Ctrl+Shift+Z (in `VrManager.Experiments.cs`) forces text on top (unlit, no depth
+test), which fixed it and proved it was a depth-ordering problem; the second Ctrl+Shift+Z state (queue
+only) is the gentle version that became the fix. Ctrl+Shift+X dumps nearby 3D text (visibility,
+frustum, material). Earlier experiments that changed nothing (emission, depth precision, near/far,
+unlit text, glass, text depth test) were all sound tests of the wrong things; the depth-test one never
+applied because the lit text shader has no `unity_GUIZTestMode` property.
 
 ## Roadmap: motion controllers (phase 2, not started)
 

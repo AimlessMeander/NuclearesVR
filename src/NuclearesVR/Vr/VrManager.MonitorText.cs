@@ -33,8 +33,46 @@ namespace NuclearesVR.Vr
         private bool _searchedForUnlitShader;
         private float _nextTextScan;
 
+        // The fix for the monitor text problem. The monitors' text sits at
+        // essentially the same depth as the screen surface behind it, and with
+        // ties the surface drawn last wins. Forward rendering draws solid
+        // objects in an order that depends on their distance from the camera,
+        // so which one won changed as the head moved: text popped on and off
+        // and swept across the screen. Drawing 3D text after all other solid
+        // geometry (render queue 2500) makes it always win the tie, with the
+        // game's own shader and depth testing otherwise untouched. The game's
+        // own Deferred path never hit this ordering.
+        internal static bool DrawTextLate = true;
+        private const int LateTextQueue = 2500;
+        private float _nextLateTextScan;
+
+        private void UpdateLateText()
+        {
+            if (!DrawTextLate || PlayerLook.Instancia == null || Time.unscaledTime < _nextLateTextScan)
+            {
+                return;
+            }
+            _nextLateTextScan = Time.unscaledTime + 3f;
+
+            var changed = 0;
+            foreach (var text in FindObjectsOfType<TextMeshPro>(true))
+            {
+                var material = text.fontSharedMaterial;
+                if (material != null && material.renderQueue == 2000)
+                {
+                    material.renderQueue = LateTextQueue;
+                    changed++;
+                }
+            }
+            if (changed > 0)
+            {
+                Plugin.Logger.LogInfo($"Moved {changed} 3D text material(s) to render queue {LateTextQueue} (draws after the surface behind it).");
+            }
+        }
+
         private void UpdateMonitorTextShaders()
         {
+            UpdateLateText();
             if (!UnlitMonitorText)
             {
                 if (_originalTextShaders.Count > 0)

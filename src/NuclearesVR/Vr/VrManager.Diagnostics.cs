@@ -48,6 +48,14 @@ namespace NuclearesVR.Vr
             {
                 DumpMaterialUnderView();
             }
+            if (Input.GetKeyDown(KeyCode.Z))
+            {
+                ToggleTextOnTop();
+            }
+            if (Input.GetKeyDown(KeyCode.X))
+            {
+                DumpTextState();
+            }
             if (Input.GetKeyDown(KeyCode.K))
             {
                 StripSpotShadows = !StripSpotShadows;
