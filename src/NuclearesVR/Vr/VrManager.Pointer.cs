@@ -128,7 +128,11 @@ namespace NuclearesVR.Vr
             }
 
             var showMarker = false;
-            if (_worldMarker != null && !_mirrorVisible && cursorVisible && _mainCamera != null)
+            // The controllers' lasers replace this marker; it stays as the fallback when no
+            // controller is being tracked (mouse and keyboard play).
+            var controllersPointing = _inputReady && Plugin.PointingEnabled.Value &&
+                                      (LeftHand.PoseValid || RightHand.PoseValid);
+            if (_worldMarker != null && !_mirrorVisible && cursorVisible && _mainCamera != null && !controllersPointing)
             {
                 var ray = _mainCamera.ScreenPointToRay(Input.mousePosition);
                 var mask = _mirrorLayer >= 0 ? ~(1 << _mirrorLayer) : ~0;

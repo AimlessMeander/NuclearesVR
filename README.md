@@ -28,7 +28,7 @@ Motion controllers (Quest 3 tested; other controllers via SteamVR's binding scre
 - Buttons map to keys (defaults: A flashlight, B tablet, Y menu, left stick click run).
 - On the pause menu the controller is the mouse cursor on the virtual screen.
 
-Not done: pointing at the tablet's own screen has not been specifically tested; per-eye shadow
+Not done: pointing at the tablet's own screen has not been specifically tested;
 differences (cosmetic).
 
 ## Build and install
