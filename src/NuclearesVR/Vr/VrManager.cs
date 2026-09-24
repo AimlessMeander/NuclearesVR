@@ -245,6 +245,10 @@ namespace NuclearesVR.Vr
                     _mirrorQuad.SetActive(wantMirror);
                 }
 
+                CheckDiagnosticsKey();
+                UpdateLightingWorkarounds();
+                UpdateMonitorTextShaders();
+
                 if (Input.GetKeyDown(KeyCode.End))
                 {
                     Recenter();
@@ -333,6 +337,9 @@ namespace NuclearesVR.Vr
         private Camera CreateEyeCamera(Camera main, string name, EVREye eye, RenderTexture target)
         {
             var go = new GameObject(name);
+            // Inactive until the camera effects below are copied in, so their
+            // Awake/OnEnable see the copied settings (see CopyCameraEffects).
+            go.SetActive(false);
             go.transform.SetParent(main.transform, worldPositionStays: false);
 
             var cam = go.AddComponent<Camera>();
@@ -374,6 +381,9 @@ namespace NuclearesVR.Vr
             cam.transform.localPosition = eyePos;
             cam.transform.localRotation = eyeRot;
 
+            CopyCameraEffects(main, cam);
+            go.SetActive(true);
+
             return cam;
         }
 
@@ -381,6 +391,7 @@ namespace NuclearesVR.Vr
         {
             if (_leftEyeCamera != null) Destroy(_leftEyeCamera.gameObject);
             if (_rightEyeCamera != null) Destroy(_rightEyeCamera.gameObject);
+            _effectPairs.Clear();
             _leftEyeCamera = null;
             _rightEyeCamera = null;
         }
@@ -551,6 +562,8 @@ namespace NuclearesVR.Vr
             eye.clearFlags = _mainCamera.clearFlags;
             eye.backgroundColor = _mainCamera.backgroundColor;
             eye.cullingMask = _mainCamera.cullingMask;
+            eye.renderingPath = ForwardOnEyes ? RenderingPath.Forward : _mainCamera.renderingPath;
+            SyncEffectsEnabled(eye);
             if (_mirrorLayer >= 0)
             {
                 eye.cullingMask |= 1 << _mirrorLayer; // see the mirror quad even though main doesn't
