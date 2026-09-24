@@ -31,6 +31,7 @@ $gameDlls = @(
     "UnityEngine.UIModule.dll", "UnityEngine.IMGUIModule.dll", "UnityEngine.AudioModule.dll",
     "UnityEngine.AnimationModule.dll", "UnityEngine.TextRenderingModule.dll",
     "UnityEngine.ImageConversionModule.dll", "UnityEngine.AssetBundleModule.dll",
+    "UnityEngine.ScreenCaptureModule.dll",
     "Fusion.Runtime.dll", "Fusion.Common.dll", "Fusion.Realtime.dll", "Fusion.Sockets.dll",
     "Fusion.Log.dll", "Fusion.Unity.dll", "Photon3Unity3D.dll", "Newtonsoft.Json.dll"
 )

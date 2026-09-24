@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 using Valve.VR;
@@ -16,6 +17,7 @@ namespace NuclearesVR.Vr
     /// Fails gracefully (logs and stays inactive) if no headset/runtime is found,
     /// so the game is unaffected when played without a headset connected.
     /// </summary>
+    [DefaultExecutionOrder(-32000)]
     internal class VrManager : MonoBehaviour
     {
         /// <summary>
@@ -48,30 +50,51 @@ namespace NuclearesVR.Vr
         private RenderTexture _rightTex;
         private Vector3 _baseLocalPosition;
 
+        // "Virtual monitor" shown before/outside gameplay (main menu, ESC pause
+        // menu) - Nucleares' menus are built on a UI canvas that's structurally
+        // invisible to any Camera (see README), so instead of trying to render
+        // the UI directly, this captures whatever's actually on the monitor
+        // each frame (via ScreenCapture, which grabs the real composited
+        // output - 3D scene *and* UI overlay together) onto a flat quad
+        // positioned in front of the headset view.
+        private GameObject _mirrorQuad;
+        private RenderTexture _mirrorTex;
+        private bool _mirrorVisible;
+
         private Vector3 _zeroPos;
         private Quaternion _zeroRot = Quaternion.identity;
         private bool _haveZeroPose;
 
-        // PlayerLook only rewrites PlayerCamera.transform.localRotation when the
-        // physical mouse actually moved that frame (see HandleNormalMode's
-        // `if (Mathf.Abs(mouseY) > 0.001f ...)` guard) - when it's stationary
-        // (the normal case while wearing a headset), the transform just keeps
-        // whatever we last wrote to it. So we can't use the transform as our
-        // "base" without reading back our own previous output and integrating
-        // our head delta into a runaway spin - instead we read the game's
-        // actual authoritative pitch state directly via reflection each frame.
-        private static readonly FieldInfo CurrentVerticalRotationField =
-            typeof(PlayerLook).GetField("currentVerticalRotation", BindingFlags.NonPublic | BindingFlags.Instance);
+        // How our head-tracking rotation coexists with the game's own camera
+        // code: each frame, at the very start (Update, ordered before every
+        // other script - see DefaultExecutionOrder on the class), we put the
+        // camera's localRotation back to exactly what it was *before* we
+        // added our head offset last frame. The game's scripts then run
+        // against that clean base - mouse-look, and the Mirar focus-on-object
+        // coroutine (used by the tablet) which slerps from whatever rotation
+        // it finds - and only afterwards, in LateUpdate, do we re-apply our
+        // offset on top. Never reading back our own contaminated output is
+        // what avoids both the earlier runaway-spin bug (PlayerLook leaves the
+        // transform untouched while the mouse is idle) and the tug-of-war a
+        // slerp toward its target would otherwise have with our offset.
+        private Quaternion _savedBaseRotation = Quaternion.identity;
+        private bool _rotationApplied;
 
-        private float _lastThrottledLogTime;
+        // Keyed per call site (not a single shared timestamp) - a single
+        // shared gate meant whichever LogThrottled call happened to run first
+        // each window (in practice, always the [heartbeat] one from Update())
+        // silently starved out every other channel, including [submitloop]
+        // below, which as a result never once appeared in a log despite the
+        // code running fine.
+        private readonly Dictionary<string, float> _lastThrottledLogTimes = new Dictionary<string, float>();
 
-        private void LogThrottled(string message)
+        private void LogThrottled(string channel, string message)
         {
-            if (Time.unscaledTime - _lastThrottledLogTime < 2f)
+            if (_lastThrottledLogTimes.TryGetValue(channel, out var last) && Time.unscaledTime - last < 2f)
             {
                 return;
             }
-            _lastThrottledLogTime = Time.unscaledTime;
+            _lastThrottledLogTimes[channel] = Time.unscaledTime;
             Plugin.Logger.LogInfo(message);
         }
 
@@ -135,6 +158,7 @@ namespace NuclearesVR.Vr
                                               "this is why.");
                 }
 
+                SetUpMirrorScreen();
                 StartCoroutine(SubmitLoop());
                 _active = true;
             }
@@ -160,19 +184,53 @@ namespace NuclearesVR.Vr
                 return;
             }
 
+            if (_rotationApplied)
+            {
+                if (_mainCamera != null)
+                {
+                    _mainCamera.transform.localRotation = _savedBaseRotation;
+                }
+                _rotationApplied = false;
+            }
+
             try
             {
+                // Before a game is loaded (main menu, loading screens) there's
+                // no PlayerLook yet, so fall back to whatever camera the menu
+                // itself uses - this is a plain static view (no head-tracking;
+                // see the MirarActivo-style early-out in LateUpdate, which
+                // still requires PlayerLook), but it means the headset shows
+                // the menu instead of nothing at all. Once a game loads,
+                // PlayerLook's camera takes over automatically since it'll
+                // differ from whatever we're currently attached to.
+                //
+                // Camera.main requires the "MainCamera" tag, which the menu
+                // camera turned out not to have (confirmed via logging -
+                // Camera.main returned null for the whole menu period even
+                // though the menu clearly renders via *some* camera) - so we
+                // search directly for whatever's actually enabled instead.
                 var playerLook = PlayerLook.Instancia;
-                var cam = playerLook != null ? playerLook.GetCamera() : null;
+                var cam = playerLook != null ? playerLook.GetCamera() : FindActiveGameCamera();
                 if (cam != null && cam != _mainCamera)
                 {
                     BuildEyeCameras(cam);
                 }
 
-                LogThrottled($"[heartbeat] active={_active} playerLookFound={playerLook != null} " +
+                LogThrottled("heartbeat", $"[heartbeat] active={_active} playerLookFound={playerLook != null} " +
                              $"cameraFound={cam != null} eyeCamerasBuilt={_leftEyeCamera != null} " +
                              $"camName={(cam != null ? cam.name : "-")} camInstance={(cam != null ? cam.GetInstanceID().ToString() : "-")} " +
                              $"camWorldPos={(cam != null ? cam.transform.position.ToString() : "-")}");
+
+                // Virtual monitor: shown whenever there's no gameplay camera yet
+                // (main menu / loading) or the game's own pause menu is up -
+                // both cases are built on a UI canvas our eye cameras can't
+                // capture directly (see SetUpMirrorScreen's comment).
+                var wantMirror = _mirrorQuad != null && (playerLook == null || CHistoria.Pausada);
+                if (wantMirror != _mirrorVisible)
+                {
+                    _mirrorVisible = wantMirror;
+                    _mirrorQuad.SetActive(wantMirror);
+                }
 
                 if (Input.GetKeyDown(KeyCode.End))
                 {
@@ -183,6 +241,41 @@ namespace NuclearesVR.Vr
             {
                 Plugin.Logger.LogError($"NuclearesVR Update error: {ex}");
             }
+        }
+
+        /// <summary>
+        /// Finds whatever camera is actually rendering the game right now, for
+        /// use before PlayerLook exists (main menu, loading screens). Excludes
+        /// our own eye cameras and the depth=80 viewmodel/overlay cameras seen
+        /// in the scene camera dump (CameraMochila, CameraArmaEnMano) - those
+        /// render on top of a base camera, not a full standalone view, so
+        /// they're not something we want to build a VR view from directly.
+        /// Prefers the highest camera.depth among what's left, matching Unity's
+        /// own rendering order (higher depth draws last/on top).
+        /// </summary>
+        private Camera FindActiveGameCamera()
+        {
+            Camera best = null;
+            foreach (var c in UnityEngine.Object.FindObjectsOfType<Camera>())
+            {
+                if (!c.enabled || c.gameObject == null)
+                {
+                    continue;
+                }
+                if (c == _leftEyeCamera || c == _rightEyeCamera)
+                {
+                    continue;
+                }
+                if (c.depth >= 80f)
+                {
+                    continue;
+                }
+                if (best == null || c.depth > best.depth)
+                {
+                    best = c;
+                }
+            }
+            return best;
         }
 
         private void BuildEyeCameras(Camera main)
@@ -196,6 +289,13 @@ namespace NuclearesVR.Vr
 
                 _leftEyeCamera = CreateEyeCamera(main, "NuclearesVR_LeftEye", EVREye.Eye_Left, _leftTex);
                 _rightEyeCamera = CreateEyeCamera(main, "NuclearesVR_RightEye", EVREye.Eye_Right, _rightTex);
+
+                if (_mirrorQuad != null)
+                {
+                    _mirrorQuad.transform.SetParent(main.transform, worldPositionStays: false);
+                    _mirrorQuad.transform.localPosition = new Vector3(0f, 0f, MirrorScreenDistance);
+                    _mirrorQuad.transform.localRotation = Quaternion.identity;
+                }
 
                 _haveZeroPose = false; // force a recenter on the next pose update
                 Plugin.Logger.LogInfo($"VR eye cameras attached to '{main.name}' (instance {main.GetInstanceID()}), " +
@@ -233,17 +333,9 @@ namespace NuclearesVR.Vr
             cam.stereoTargetEye = StereoTargetEyeMask.None;
             cam.rect = new Rect(0, 0, 1, 1);
 
-            // CopyFrom only copies Camera settings, not other components on the
-            // same GameObject - if the main camera has a per-camera Skybox
-            // component override (common for custom time-of-day skies, rather
-            // than relying on the single scene-wide RenderSettings.skybox),
-            // that override doesn't carry over, and this fresh GameObject falls
-            // back to the (possibly unset) global skybox, rendering black.
-            if (main.TryGetComponent<Skybox>(out var mainSkybox) && mainSkybox.material != null)
-            {
-                var eyeSkybox = go.AddComponent<Skybox>();
-                eyeSkybox.material = mainSkybox.material;
-            }
+            // clearFlags/cullingMask/Skybox are kept in sync with main every
+            // frame in SyncEyeCameraSettings (LateUpdate) rather than copied
+            // once here - see that method's comment for why.
 
             // Unity's occlusion culling extracts frustum planes from the
             // projection matrix, and gets confused by the asymmetric/off-center
@@ -285,6 +377,126 @@ namespace NuclearesVR.Vr
             _rightEyeCamera = null;
         }
 
+        private const float MirrorScreenDistance = 2f;
+        private const float MirrorScreenHeight = 1.24f;
+
+        /// <summary>
+        /// Nucleares' menus (main menu, ESC pause menu) are built on a UI
+        /// canvas that's structurally invisible to any Camera - Unity's
+        /// Screen Space - Overlay canvases draw straight to the final screen
+        /// output, bypassing the whole camera/rendering pipeline entirely, so
+        /// no amount of eye-camera configuration can capture them (confirmed
+        /// by decompiling the menu's own source - MenuInicioAnimacionCamara's
+        /// CamMenuInicial only ever renders the 3D decorative backdrop behind
+        /// the buttons, never the buttons themselves).
+        ///
+        /// Rather than reconfigure those canvases at runtime (risky - could
+        /// break the actual on-screen menu for flatscreen play), this instead
+        /// captures whatever's *already* on the monitor each frame - the real
+        /// composited output, 3D scene and UI overlay together - via
+        /// ScreenCapture, and displays it on a plain flat quad positioned in
+        /// front of the headset view. Works for any UI state, not just menus.
+        /// </summary>
+        // Assigned in SetUpMirrorScreen. The mirror quad lives on this layer,
+        // which is included in our eye cameras' cullingMask (see
+        // SyncOneEyeCamera) but deliberately NOT in the real main camera's -
+        // otherwise the main camera (which renders to your actual monitor)
+        // would render the quad too, and since we capture the monitor's own
+        // output onto that same quad's texture, that created a feedback loop:
+        // each captured frame already contained the previous frame's quad,
+        // compounding into a doubled/scrambled image every frame.
+        private int _mirrorLayer = -1;
+        private Material _mirrorMaterial;
+
+        // CaptureScreenshotIntoRenderTexture expects a texture the same size as
+        // the screen - an earlier half-size version only ended up covering a
+        // corner of the screen (the pause menu, centered on the real screen,
+        // landed clipped at the edge of the capture). Recreated if the window
+        // is ever resized.
+        private void ResizeMirrorTextureIfNeeded()
+        {
+            if (_mirrorTex == null || (_mirrorTex.width == Screen.width && _mirrorTex.height == Screen.height))
+            {
+                return;
+            }
+            var w = Mathf.Max(1, Screen.width);
+            var h = Mathf.Max(1, Screen.height);
+            _mirrorTex.Release();
+            _mirrorTex.width = w;
+            _mirrorTex.height = h;
+            _mirrorTex.Create();
+            if (_mirrorQuad != null)
+            {
+                _mirrorQuad.transform.localScale = new Vector3(MirrorScreenHeight * w / h, MirrorScreenHeight, 1f);
+            }
+            Plugin.Logger.LogInfo($"Mirror screen resized to {w}x{h}.");
+        }
+
+        /// <summary>
+        /// Picks a Unity layer (0-31) that has no name assigned in this
+        /// project, on the assumption that an unnamed layer is unused - not a
+        /// hard guarantee, but the best signal available without access to
+        /// the project's actual layer configuration. Searches from 31 down
+        /// since high layer numbers are conventionally left free for exactly
+        /// this kind of runtime/tooling use, and logs a warning if even that
+        /// is already named (in use), since then we're picking blind.
+        /// </summary>
+        private int PickUnusedLayer()
+        {
+            for (var i = 31; i >= 8; i--)
+            {
+                if (string.IsNullOrEmpty(LayerMask.LayerToName(i)))
+                {
+                    return i;
+                }
+            }
+            Plugin.Logger.LogWarning("Every layer 8-31 is named/in use - falling back to layer 31 anyway; " +
+                                      "the mirror screen may become visible on the flatscreen monitor too.");
+            return 31;
+        }
+
+        private void SetUpMirrorScreen()
+        {
+            try
+            {
+                _mirrorLayer = PickUnusedLayer();
+
+                var mirrorWidth = Mathf.Max(1, Screen.width);
+                var mirrorHeight = Mathf.Max(1, Screen.height);
+                _mirrorTex = new RenderTexture(mirrorWidth, mirrorHeight, 0, RenderTextureFormat.Default);
+                _mirrorTex.Create();
+
+                _mirrorQuad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                _mirrorQuad.name = "NuclearesVR_MirrorScreen";
+                _mirrorQuad.layer = _mirrorLayer;
+                var collider = _mirrorQuad.GetComponent<Collider>();
+                if (collider != null)
+                {
+                    Destroy(collider); // don't want this floating quad interfering with the game's own raycasts
+                }
+
+                var aspect = (float)mirrorWidth / mirrorHeight;
+                _mirrorQuad.transform.localScale = new Vector3(MirrorScreenHeight * aspect, MirrorScreenHeight, 1f);
+
+                var renderer = _mirrorQuad.GetComponent<MeshRenderer>();
+                _mirrorMaterial = new Material(Shader.Find("Unlit/Texture")) { mainTexture = _mirrorTex };
+                // ScreenCapture's output is stored vertically flipped on Direct3D;
+                // flip it back via the UV transform rather than touching the pixels.
+                _mirrorMaterial.mainTextureScale = new Vector2(1f, -1f);
+                _mirrorMaterial.mainTextureOffset = new Vector2(0f, 1f);
+                renderer.material = _mirrorMaterial;
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+
+                _mirrorQuad.SetActive(false);
+                Plugin.Logger.LogInfo($"Mirror screen set up at {mirrorWidth}x{mirrorHeight} on layer {_mirrorLayer}.");
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogError($"Failed to set up mirror screen: {ex}");
+            }
+        }
+
         private void Recenter()
         {
             if (!TryGetHmdPose(out var pos, out var rot))
@@ -295,6 +507,54 @@ namespace NuclearesVR.Vr
             _zeroRot = rot;
             _haveZeroPose = true;
             Plugin.Logger.LogInfo("VR view recentered.");
+        }
+
+        /// <summary>
+        /// CreateEyeCamera's CopyFrom(main) is a one-time snapshot, but the game
+        /// changes some of the main camera's settings at runtime - e.g.
+        /// clearFlags likely toggles between SolidColor and Skybox depending on
+        /// whether the player is indoors or outdoors (gestionExterior.cs sets
+        /// RenderSettings.skybox on period/weather changes), and cullingMask may
+        /// similarly change which layers are visible in different areas. If our
+        /// eye cameras were built while indoors, they'd be frozen at whatever
+        /// clearFlags/cullingMask applied then, missing the sky (black instead
+        /// of Skybox) and any objects on layers added to main's cullingMask
+        /// later (a plausible explanation for a train + track only missing in
+        /// the eye cameras, not the main camera). Re-syncing every frame is
+        /// cheap and avoids needing to know exactly when/why the game changes
+        /// these.
+        /// </summary>
+        private void SyncEyeCameraSettings()
+        {
+            if (_leftEyeCamera == null || _rightEyeCamera == null)
+            {
+                return;
+            }
+            SyncOneEyeCamera(_leftEyeCamera);
+            SyncOneEyeCamera(_rightEyeCamera);
+        }
+
+        private void SyncOneEyeCamera(Camera eye)
+        {
+            eye.clearFlags = _mainCamera.clearFlags;
+            eye.backgroundColor = _mainCamera.backgroundColor;
+            eye.cullingMask = _mainCamera.cullingMask;
+            if (_mirrorLayer >= 0)
+            {
+                eye.cullingMask |= 1 << _mirrorLayer; // see the mirror quad even though main doesn't
+            }
+
+            if (_mainCamera.TryGetComponent<Skybox>(out var mainSkybox) && mainSkybox.material != null)
+            {
+                if (!eye.TryGetComponent<Skybox>(out var eyeSkybox))
+                {
+                    eyeSkybox = eye.gameObject.AddComponent<Skybox>();
+                }
+                if (eyeSkybox.material != mainSkybox.material)
+                {
+                    eyeSkybox.material = mainSkybox.material;
+                }
+            }
         }
 
         private bool TryGetHmdPose(out Vector3 position, out Quaternion rotation)
@@ -319,20 +579,25 @@ namespace NuclearesVR.Vr
 
             try
             {
+                SyncEyeCameraSettings();
+
+                // WaitGetPoses must run every frame we also Submit, no matter
+                // what else is going on - it's how SteamVR's compositor tracks
+                // that the app is alive and paces its frames. It used to sit
+                // below the early returns that follow, which meant: (1) at
+                // the main menu (no PlayerLook yet) it was never called, so
+                // SteamVR never granted us scene focus - Submit returned
+                // DoNotHaveFocus and the headset never showed the menu; and
+                // (2) while the tablet (or any other MirarActivo focus mode)
+                // was open it was skipped while Submit kept firing, giving
+                // AlreadySubmitted errors and SteamVR's "waiting" screen.
+                OpenVR.Compositor.WaitGetPoses(_renderPoses, EmptyPoseArray);
+
                 var playerLook = PlayerLook.Instancia;
                 if (playerLook == null)
                 {
                     return;
                 }
-                if (playerLook.MirarActivo)
-                {
-                    // The game's own "look at this gauge" coroutine is driving
-                    // localRotation directly right now - don't fight it.
-                    return;
-                }
-
-                OpenVR.Compositor.WaitGetPoses(_renderPoses, EmptyPoseArray);
-
                 if (!TryGetHmdPose(out var pos, out var rot))
                 {
                     return;
@@ -358,32 +623,20 @@ namespace NuclearesVR.Vr
                                         deltaRot.z * deltaRot.z + deltaRot.w * deltaRot.w);
                 if (deltaPos.magnitude > maxDelta || Mathf.Abs(qNorm - 1f) > 0.01f)
                 {
-                    LogThrottled($"Rejecting bad VR pose delta (pos={deltaPos}, |q|={qNorm:F3}) - " +
+                    LogThrottled("pose-reject", $"Rejecting bad VR pose delta (pos={deltaPos}, |q|={qNorm:F3}) - " +
                                  "leaving camera untouched this frame.");
                     return;
                 }
 
-                LogThrottled($"HMD pos={pos} rot={rot.eulerAngles} deltaPos={deltaPos} deltaRotEuler={deltaRot.eulerAngles}");
+                LogThrottled("pose", $"HMD pos={pos} rot={rot.eulerAngles} deltaPos={deltaPos} deltaRotEuler={deltaRot.eulerAngles}");
 
-                // Rotation: compose our head-tracking delta onto the game's
-                // *authoritative* pitch state (read via reflection), not onto
-                // whatever the transform currently holds - PlayerLook only
-                // rewrites the transform when the mouse actually moved that
-                // frame, so reading the transform back here would integrate our
-                // own delta into a runaway spin whenever the mouse is idle
-                // (which is always, in VR).
-                float basePitch = 0f;
-                if (CurrentVerticalRotationField != null)
-                {
-                    basePitch = (float)CurrentVerticalRotationField.GetValue(playerLook);
-                }
-                else
-                {
-                    LogThrottled("currentVerticalRotation field not found via reflection - " +
-                                 "falling back to 0 pitch base (game update may have renamed it).");
-                }
-                var baseLocalRotation = Quaternion.Euler(basePitch, 0f, 0f);
-                _mainCamera.transform.localRotation = baseLocalRotation * deltaRot;
+                // Rotation: the transform currently holds the game's own result
+                // for this frame, on top of the clean base we restored in
+                // Update (see the comment on _savedBaseRotation) - remember it
+                // exactly, then add our head offset.
+                _savedBaseRotation = _mainCamera.transform.localRotation;
+                _mainCamera.transform.localRotation = _savedBaseRotation * deltaRot;
+                _rotationApplied = true;
 
                 // Position: the game never touches localPosition per-frame, so we
                 // track our own cached base instead of accumulating.
@@ -404,6 +657,24 @@ namespace NuclearesVR.Vr
             while (true)
             {
                 yield return new WaitForEndOfFrame();
+
+                if (_mirrorVisible && _mirrorTex != null)
+                {
+                    try
+                    {
+                        ResizeMirrorTextureIfNeeded();
+                        ScreenCapture.CaptureScreenshotIntoRenderTexture(_mirrorTex);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogThrottled("mirror-capture-error", $"Mirror screen capture error: {ex}");
+                    }
+                }
+
+                LogThrottled("submitloop", $"[submitloop] active={_active} " +
+                             $"leftCam={(_leftEyeCamera != null ? $"enabled={_leftEyeCamera.enabled},activeInHierarchy={_leftEyeCamera.gameObject.activeInHierarchy}" : "null")} " +
+                             $"rightCam={(_rightEyeCamera != null ? $"enabled={_rightEyeCamera.enabled},activeInHierarchy={_rightEyeCamera.gameObject.activeInHierarchy}" : "null")} " +
+                             $"timeScale={Time.timeScale}");
 
                 if (!_active || _leftEyeCamera == null || _rightEyeCamera == null)
                 {
@@ -429,7 +700,7 @@ namespace NuclearesVR.Vr
                     var rightErr = OpenVR.Compositor.Submit(EVREye.Eye_Right, ref rightTexT, ref bounds, EVRSubmitFlags.Submit_Default);
                     if (leftErr != EVRCompositorError.None || rightErr != EVRCompositorError.None)
                     {
-                        LogThrottled($"Compositor.Submit returned an error: left={leftErr}, right={rightErr}");
+                        LogThrottled("submit-error", $"Compositor.Submit returned an error: left={leftErr}, right={rightErr}");
                     }
                 }
                 catch (Exception ex)
