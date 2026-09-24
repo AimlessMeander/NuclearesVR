@@ -7,6 +7,16 @@ using UnityEngine.SceneManagement;
 
 namespace NuclearesVR
 {
+    public enum VrStartMode
+    {
+        /// <summary>VR only if SteamVR is already running; otherwise play normally in 2D.</summary>
+        Auto,
+        /// <summary>Always start VR when a game loads (this launches SteamVR if it is not running).</summary>
+        Always,
+        /// <summary>Never start VR.</summary>
+        Never
+    }
+
     [BepInPlugin(Guid, Name, Version)]
     public class Plugin : BaseUnityPlugin
     {
@@ -21,6 +31,10 @@ namespace NuclearesVR
         internal static ConfigEntry<float> TurnSpeed;
         internal static ConfigEntry<float> DragPixelsPerMeter;
         internal static ConfigEntry<bool> WalkTowardsHead;
+        internal static ConfigEntry<VrStartMode> StartMode;
+        internal static ConfigEntry<bool> GripIsRightClick;
+        internal static ConfigEntry<int> EyeMsaa;
+        internal static ConfigEntry<float> RenderScale;
         internal static ConfigEntry<KeyCode> KeyA, KeyB, KeyX, KeyY;
         internal static ConfigEntry<KeyCode> KeyLeftGrip, KeyRightGrip, KeyLeftStick, KeyRightStick;
 
@@ -41,6 +55,17 @@ namespace NuclearesVR
                 "Turning dials and moving sliders: how many 'mouse pixels' one metre of hand movement counts as (higher = a shorter hand movement turns a dial further).");
             WalkTowardsHead = Config.Bind("Controllers", "WalkTowardsHead", true,
                 "Pushing the left stick moves you the way your head faces (the body turns to face where you look while you move). Off = the way the body faces.");
+            StartMode = Config.Bind("General", "VrMode", VrStartMode.Auto,
+                "Auto = start VR only if SteamVR is already running, so playing on the monitor without SteamVR never launches it. " +
+                "Always = always start VR when a game loads (launches SteamVR if needed). Never = never start VR.");
+            GripIsRightClick = Config.Bind("Controllers", "GripIsRightClick", true,
+                "Holding a grip is the right mouse button: hold it on a gauge or component for its detail box, open switch guards, and with the stick forward/back to zoom.");
+            EyeMsaa = Config.Bind("Graphics", "Msaa", 4,
+                new ConfigDescription("Anti-aliasing (MSAA samples) for the headset view: 1 = off, 2, 4 or 8. Smooths jagged edges; costs GPU time. Applied when a game loads.",
+                    new AcceptableValueList<int>(1, 2, 4, 8)));
+            RenderScale = Config.Bind("Graphics", "RenderScale", 1.0f,
+                new ConfigDescription("Renders the headset view at this multiple of the headset's recommended resolution (1.0 = recommended, 1.3 = sharper and less aliased, more GPU load). Applied when a game loads.",
+                    new AcceptableValueRange<float>(0.5f, 2.0f)));
             const string keys = "Buttons: the keyboard key the game sees when the controller button is pressed. None = unused. " +
                                 "Use the game's own key bindings if you changed them.";
             KeyA = Config.Bind("Buttons", "A", KeyCode.F, keys + " Default: flashlight.");

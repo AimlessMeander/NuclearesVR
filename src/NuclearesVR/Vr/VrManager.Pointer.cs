@@ -96,6 +96,7 @@ namespace NuclearesVR.Vr
                 _mirrorQuad.transform.localPosition = new Vector3(0f, 0f, MirrorScreenDistance);
                 _mirrorQuad.transform.localRotation = Quaternion.identity;
             }
+            ParentInfoPanel(camera);
             if (_cursorArrow != null)
             {
                 _cursorArrow.transform.SetParent(camera, worldPositionStays: false);

@@ -245,6 +245,12 @@ namespace NuclearesVR.Vr
             AddMapped(RightHand.StickClick, Plugin.KeyRightStick.Value);
             VrKeys.Apply(_wantedKeys);
 
+            VrKeys.SetAim(allowed && hand.PoseValid, hand.WorldPos, hand.WorldRot * Vector3.forward,
+                          _mainCamera != null ? _mainCamera.transform : null);
+
+            // Holding a grip is the right mouse button (detail box on gauges, switch guards, zoom).
+            VrKeys.SetRightMouse(allowed && Plugin.GripIsRightClick.Value && (LeftHand.Grip || RightHand.Grip));
+
             // Right stick turns you, through the game's own mouse look.
             _movingLastFrame = allowed && (MoveStick.sqrMagnitude > StickPressThreshold * StickPressThreshold);
 

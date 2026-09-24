@@ -109,6 +109,42 @@ namespace NuclearesVR.Vr
         }
 
         private bool _initTried;
+        private bool _skippedVr;
+
+        /// <summary>
+        /// Starting OpenVR launches SteamVR if it is not running, which nobody wants when playing on the
+        /// monitor. In Auto mode VR only starts if SteamVR's server is already running (as it is when
+        /// the game is started from inside SteamVR, e.g. over Steam Link).
+        /// </summary>
+        private static bool VrWanted(out string reason)
+        {
+            switch (Plugin.StartMode.Value)
+            {
+                case VrStartMode.Never:
+                    reason = "VrMode is Never.";
+                    return false;
+                case VrStartMode.Always:
+                    reason = "";
+                    return true;
+                default:
+                    try
+                    {
+                        if (System.Diagnostics.Process.GetProcessesByName("vrserver").Length > 0)
+                        {
+                            reason = "";
+                            return true;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Plugin.Logger.LogWarning($"Could not check whether SteamVR is running ({ex.Message}); assuming yes.");
+                        reason = "";
+                        return true;
+                    }
+                    reason = "SteamVR is not running (set VrMode to Always in the config to launch it automatically).";
+                    return false;
+            }
+        }
         private bool _shuttingDown;
         private float _noPlayerSince = -1f;
         private const float LeaveGameGraceSeconds = 1.5f;
@@ -151,6 +187,7 @@ namespace NuclearesVR.Vr
             if (_cursorArrow != null) _cursorArrow.SetActive(false);
             if (_worldMarker != null) _worldMarker.SetActive(false);
             HideHands();
+            HideInfoPanel();
             ReleaseControllerActions();
             DestroyEyeCameras();
             _mainCamera = null;
@@ -204,8 +241,13 @@ namespace NuclearesVR.Vr
                 _system.GetRecommendedRenderTargetSize(ref w, ref h);
                 Plugin.Logger.LogInfo($"OpenVR initialized. Recommended per-eye render size: {w}x{h}");
 
-                _leftTex = new RenderTexture((int)w, (int)h, 24, RenderTextureFormat.Default) { antiAliasing = 1 };
-                _rightTex = new RenderTexture((int)w, (int)h, 24, RenderTextureFormat.Default) { antiAliasing = 1 };
+                var scale = Plugin.RenderScale.Value;
+                var eyeWidth = Mathf.Max(64, Mathf.RoundToInt(w * scale));
+                var eyeHeight = Mathf.Max(64, Mathf.RoundToInt(h * scale));
+                var msaa = Plugin.EyeMsaa.Value;
+                _leftTex = new RenderTexture(eyeWidth, eyeHeight, 24, RenderTextureFormat.Default) { antiAliasing = msaa };
+                _rightTex = new RenderTexture(eyeWidth, eyeHeight, 24, RenderTextureFormat.Default) { antiAliasing = msaa };
+                Plugin.Logger.LogInfo($"Eye textures {eyeWidth}x{eyeHeight} (render scale {scale:F2}), MSAA {msaa}x.");
                 _leftTex.Create();
                 _rightTex.Create();
                 Plugin.Logger.LogInfo($"Eye render textures created: left.IsCreated={_leftTex.IsCreated()}, right.IsCreated={_rightTex.IsCreated()}");
@@ -247,8 +289,22 @@ namespace NuclearesVR.Vr
                 if (!_initTried && !_shuttingDown && PlayerLook.Instancia != null)
                 {
                     _initTried = true;
-                    Plugin.Logger.LogInfo("A game is loaded - starting VR now.");
-                    TryInitOpenVr();
+                    if (VrWanted(out var reason))
+                    {
+                        Plugin.Logger.LogInfo("A game is loaded - starting VR now.");
+                        TryInitOpenVr();
+                    }
+                    else
+                    {
+                        Plugin.Logger.LogInfo($"A game is loaded - not starting VR: {reason}");
+                        _skippedVr = true;
+                    }
+                }
+                else if (_skippedVr && PlayerLook.Instancia == null)
+                {
+                    // Back at the menu: decide again at the next game load.
+                    _initTried = false;
+                    _skippedVr = false;
                 }
                 if (!_active)
                 {
@@ -668,6 +724,7 @@ namespace NuclearesVR.Vr
             eye.backgroundColor = _mainCamera.backgroundColor;
             eye.cullingMask = _mainCamera.cullingMask;
             eye.renderingPath = ForwardOnEyes ? RenderingPath.Forward : _mainCamera.renderingPath;
+            eye.allowMSAA = true; // the main camera may have it off (Deferred cannot use it); the eyes are Forward
             SyncEffectsEnabled(eye);
             if (_mirrorLayer >= 0)
             {
@@ -782,6 +839,7 @@ namespace NuclearesVR.Vr
                 RememberHeadYaw();
                 PositionHands();
                 UpdateControllerActions();
+                UpdateInfoPanel();
 
                 // After head tracking, so the click ray below uses the same
                 // camera pose the game will use for the actual click.
@@ -805,7 +863,7 @@ namespace NuclearesVR.Vr
 
                 ApplyPointerPose();
 
-                if (_mirrorVisible && _mirrorTex != null)
+                if ((_mirrorVisible || _infoVisible) && _mirrorTex != null)
                 {
                     try
                     {
