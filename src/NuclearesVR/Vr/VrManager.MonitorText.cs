@@ -18,7 +18,7 @@ namespace NuclearesVR.Vr
     /// ("TextMeshPro/Distance Field", which the game also loads, so it's in
     /// the build) while in a game, and remember what they were so Ctrl+Shift+T
     /// can put them back. Off by default: it applied fine but made no
-    /// difference to the monitors, so lit text was not the cause. It.s the material that.s changed, so it applies to
+    /// difference to the monitors, so lit text was not the cause. Because it changes the material, it applies to
     /// the monitor view as well.
     /// </summary>
     internal partial class VrManager
