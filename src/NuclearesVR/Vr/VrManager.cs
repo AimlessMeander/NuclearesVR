@@ -18,7 +18,7 @@ namespace NuclearesVR.Vr
     /// so the game is unaffected when played without a headset connected.
     /// </summary>
     [DefaultExecutionOrder(-32000)]
-    internal class VrManager : MonoBehaviour
+    internal partial class VrManager : MonoBehaviour
     {
         /// <summary>
         /// Call only after a scene has actually finished loading (see
@@ -225,6 +225,19 @@ namespace NuclearesVR.Vr
                 // (main menu / loading) or the game's own pause menu is up -
                 // both cases are built on a UI canvas our eye cameras can't
                 // capture directly (see SetUpMirrorScreen's comment).
+                // The quad and cursor arrow are children of whichever camera
+                // we're attached to, so the game destroying that camera (menu
+                // to game, back to menu) takes them with it - rebuild if so.
+                if (_mirrorTex != null && _mirrorQuad == null)
+                {
+                    SetUpMirrorScreen();
+                    _mirrorVisible = false;
+                    if (_mainCamera != null)
+                    {
+                        ParentMirrorObjects(_mainCamera.transform);
+                    }
+                }
+
                 var wantMirror = _mirrorQuad != null && (playerLook == null || CHistoria.Pausada);
                 if (wantMirror != _mirrorVisible)
                 {
@@ -290,12 +303,7 @@ namespace NuclearesVR.Vr
                 _leftEyeCamera = CreateEyeCamera(main, "NuclearesVR_LeftEye", EVREye.Eye_Left, _leftTex);
                 _rightEyeCamera = CreateEyeCamera(main, "NuclearesVR_RightEye", EVREye.Eye_Right, _rightTex);
 
-                if (_mirrorQuad != null)
-                {
-                    _mirrorQuad.transform.SetParent(main.transform, worldPositionStays: false);
-                    _mirrorQuad.transform.localPosition = new Vector3(0f, 0f, MirrorScreenDistance);
-                    _mirrorQuad.transform.localRotation = Quaternion.identity;
-                }
+                ParentMirrorObjects(main.transform);
 
                 _haveZeroPose = false; // force a recenter on the next pose update
                 Plugin.Logger.LogInfo($"VR eye cameras attached to '{main.name}' (instance {main.GetInstanceID()}), " +
@@ -463,8 +471,11 @@ namespace NuclearesVR.Vr
 
                 var mirrorWidth = Mathf.Max(1, Screen.width);
                 var mirrorHeight = Mathf.Max(1, Screen.height);
-                _mirrorTex = new RenderTexture(mirrorWidth, mirrorHeight, 0, RenderTextureFormat.Default);
-                _mirrorTex.Create();
+                if (_mirrorTex == null)
+                {
+                    _mirrorTex = new RenderTexture(mirrorWidth, mirrorHeight, 0, RenderTextureFormat.Default);
+                    _mirrorTex.Create();
+                }
 
                 _mirrorQuad = GameObject.CreatePrimitive(PrimitiveType.Quad);
                 _mirrorQuad.name = "NuclearesVR_MirrorScreen";
@@ -489,6 +500,7 @@ namespace NuclearesVR.Vr
                 renderer.receiveShadows = false;
 
                 _mirrorQuad.SetActive(false);
+                SetUpPointerObjects();
                 Plugin.Logger.LogInfo($"Mirror screen set up at {mirrorWidth}x{mirrorHeight} on layer {_mirrorLayer}.");
             }
             catch (Exception ex)
@@ -596,6 +608,7 @@ namespace NuclearesVR.Vr
                 var playerLook = PlayerLook.Instancia;
                 if (playerLook == null)
                 {
+                    UpdatePointerVisuals();
                     return;
                 }
                 if (!TryGetHmdPose(out var pos, out var rot))
@@ -641,6 +654,10 @@ namespace NuclearesVR.Vr
                 // Position: the game never touches localPosition per-frame, so we
                 // track our own cached base instead of accumulating.
                 _mainCamera.transform.localPosition = _baseLocalPosition + deltaPos;
+
+                // After head tracking, so the click ray below uses the same
+                // camera pose the game will use for the actual click.
+                UpdatePointerVisuals();
             }
             catch (Exception ex)
             {
