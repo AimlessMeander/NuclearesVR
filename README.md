@@ -11,7 +11,9 @@ them to textures, and submits those to SteamVR's compositor itself.
 Working, tested on hardware (Quest-class headset over Steam Link / SteamVR):
 
 - Stereo rendering and 6DoF head tracking (orientation and position).
-- Main menu, pause menu and dialogs, via a "virtual screen" (see below).
+- VR only runs while a game is loaded: the start menu is a normal 2D window, VR starts on loading a
+  game and shuts down cleanly on exit to the menu (repeatable; see "Startup and shutdown").
+- Pause menu and dialogs, via a "virtual screen" (see below).
 - Head tracking keeps working while the tablet / focus modes are active.
 - Mouse pointer visible in the headset (arrow on the virtual screen; marker in the world for the
   tablet and ALT interactive mode).
@@ -54,6 +56,11 @@ BepInEx 5.4.23.5 is installed in the game folder. Logs: `<game>/BepInEx/LogOutpu
 
 - **Startup:** BepInEx runs the plugin in Nucleares' bootstrap scene, which is torn down almost at
   once. Anything created there dies. The manager object is created on the first `sceneLoaded`.
+- **Startup and shutdown:** OpenVR is not started at launch, only once `PlayerLook.Instancia` exists, so
+  the start menu stays 2D. When the player has been gone for 1.5 s (exit to menu) `ShutdownVr` stops
+  the submit loop, destroys the eye cameras, calls `OpenVR.Shutdown()` and only then frees the eye
+  textures (freeing them earlier crashed inside the NVIDIA driver). Starting again on the next load
+  works repeatedly.
 - **SteamVR frame pacing:** `WaitGetPoses` must be called every frame, before any early return.
   Skipping it gave `DoNotHaveFocus` at the menu and `AlreadySubmitted` + SteamVR's "waiting" screen
   when the tablet opened.

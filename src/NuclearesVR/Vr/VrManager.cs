@@ -101,8 +101,17 @@ namespace NuclearesVR.Vr
         private void Awake()
         {
             Plugin.Logger.LogInfo($"VrManager.Awake on GameObject '{gameObject.name}' (instance {GetInstanceID()})");
-            TryInitOpenVr();
+            // OpenVR is deliberately not started here. Starting it makes the
+            // headset switch to this game's view straight away, and the game's
+            // start menu doesn't work well in VR; until a game is loaded the
+            // game stays an ordinary desktop window (Steam Link / Big Picture
+            // shows it in 2D). See the start in Update.
         }
+
+        private bool _initTried;
+        private bool _shuttingDown;
+        private float _noPlayerSince = -1f;
+        private const float LeaveGameGraceSeconds = 1.5f;
 
         private void OnEnable()
         {
@@ -121,6 +130,54 @@ namespace NuclearesVR.Vr
             {
                 OpenVR.Shutdown();
             }
+        }
+
+        /// <summary>
+        /// Leaves VR cleanly (used when the player exits to the start menu) so
+        /// SteamVR lets go of the headset and the menu is a normal 2D window,
+        /// and so a later game load can start VR again. Order matters: stop
+        /// submitting frames first, shut OpenVR down, and only then free the
+        /// textures the compositor was reading - freeing them while it might
+        /// still use them crashes inside the graphics driver.
+        /// </summary>
+        private void ShutdownVr()
+        {
+            Plugin.Logger.LogInfo("Back at the start menu - shutting VR down.");
+            _active = false;
+            _shuttingDown = true;
+            StopAllCoroutines();
+            _mirrorVisible = false;
+            if (_mirrorQuad != null) _mirrorQuad.SetActive(false);
+            if (_cursorArrow != null) _cursorArrow.SetActive(false);
+            if (_worldMarker != null) _worldMarker.SetActive(false);
+            DestroyEyeCameras();
+            _mainCamera = null;
+            _rotationApplied = false;
+            StartCoroutine(FinishShutdown());
+        }
+
+        private System.Collections.IEnumerator FinishShutdown()
+        {
+            // Let the camera destruction and any in-flight frame finish.
+            yield return null;
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            try
+            {
+                OpenVR.Shutdown();
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogError($"OpenVR.Shutdown threw: {ex}");
+            }
+            _system = null;
+            yield return null;
+            yield return null;
+            if (_leftTex != null) { _leftTex.Release(); Destroy(_leftTex); _leftTex = null; }
+            if (_rightTex != null) { _rightTex.Release(); Destroy(_rightTex); _rightTex = null; }
+            _initTried = false;
+            _shuttingDown = false;
+            Plugin.Logger.LogInfo("VR shut down. It will start again when a game is loaded.");
         }
 
         private void TryInitOpenVr()
@@ -160,6 +217,7 @@ namespace NuclearesVR.Vr
 
                 SetUpMirrorScreen();
                 StartCoroutine(SubmitLoop());
+                _noPlayerSince = -1f;
                 _active = true;
             }
             catch (Exception ex)
@@ -181,7 +239,18 @@ namespace NuclearesVR.Vr
 
             if (!_active)
             {
-                return;
+                // Start VR the first time a game is actually loaded (the
+                // player exists), not at the start menu. One attempt only.
+                if (!_initTried && !_shuttingDown && PlayerLook.Instancia != null)
+                {
+                    _initTried = true;
+                    Plugin.Logger.LogInfo("A game is loaded - starting VR now.");
+                    TryInitOpenVr();
+                }
+                if (!_active)
+                {
+                    return;
+                }
             }
 
             if (_rotationApplied)
@@ -191,6 +260,26 @@ namespace NuclearesVR.Vr
                     _mainCamera.transform.localRotation = _savedBaseRotation;
                 }
                 _rotationApplied = false;
+            }
+
+            // Back at the start menu (no player for a moment): hand the headset
+            // back so the menu is a normal 2D window again. The grace period
+            // covers the brief gaps while a game loads.
+            if (PlayerLook.Instancia == null)
+            {
+                if (_noPlayerSince < 0f)
+                {
+                    _noPlayerSince = Time.unscaledTime;
+                }
+                else if (Time.unscaledTime - _noPlayerSince > LeaveGameGraceSeconds)
+                {
+                    ShutdownVr();
+                    return;
+                }
+            }
+            else
+            {
+                _noPlayerSince = -1f;
             }
 
             try
@@ -488,6 +577,14 @@ namespace NuclearesVR.Vr
                     _mirrorTex.Create();
                 }
 
+                if (_mirrorQuad != null)
+                {
+                    Destroy(_mirrorQuad);
+                }
+                if (_mirrorMaterial != null)
+                {
+                    Destroy(_mirrorMaterial);
+                }
                 _mirrorQuad = GameObject.CreatePrimitive(PrimitiveType.Quad);
                 _mirrorQuad.name = "NuclearesVR_MirrorScreen";
                 _mirrorQuad.layer = _mirrorLayer;
