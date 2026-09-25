@@ -29,6 +29,13 @@ namespace NuclearesVR.Vr
         internal static Vector2 MouseOffset;
 
         /// <summary>
+        /// True while a drag (or its short hold after release) is going on. Then Input.mousePosition is
+        /// the window centre plus <see cref="MouseOffset"/>, NOT the real cursor, because the game locks
+        /// and unlocks the cursor around switch steps and Unity moves the real cursor when it does.
+        /// </summary>
+        internal static bool Dragging;
+
+        /// <summary>
         /// The active controller's ray, and the game camera it replaces. The game finds "the component
         /// I am looking at" by casting from the camera's own transform in its Update; while pointing,
         /// those casts use this ray instead (see the Rayo patches).
@@ -100,6 +107,7 @@ namespace NuclearesVR.Vr
             TurnInput = 0f;
             AimValid = false;
             MouseOffset = Vector2.zero;
+            Dragging = false;
             PointingActive = false;
         }
 
@@ -291,7 +299,12 @@ namespace NuclearesVR.Vr
 
         private static void MousePositionPostfix(ref Vector3 __result)
         {
-            if (VrKeys.MouseOffset != Vector2.zero)
+            if (VrKeys.Dragging)
+            {
+                __result.x = Screen.width * 0.5f + VrKeys.MouseOffset.x;
+                __result.y = Screen.height * 0.5f + VrKeys.MouseOffset.y;
+            }
+            else if (VrKeys.MouseOffset != Vector2.zero)
             {
                 __result.x += VrKeys.MouseOffset.x;
                 __result.y += VrKeys.MouseOffset.y;

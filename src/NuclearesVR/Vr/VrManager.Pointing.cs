@@ -224,6 +224,7 @@ namespace NuclearesVR.Vr
                 _dragOut.x = Backlash(_dragOut.x, Vector3.Dot(moved, right));
                 _dragOut.y = Backlash(_dragOut.y, moved.y);
                 VrKeys.MouseOffset = _dragOut * Plugin.DragPixelsPerMeter.Value;
+                VrKeys.Dragging = true;
             }
             else
             {
@@ -241,6 +242,7 @@ namespace NuclearesVR.Vr
                 if (_releaseHoldFrames <= 0)
                 {
                     VrKeys.MouseOffset = Vector2.zero;
+                    VrKeys.Dragging = false;
                 }
             }
 
