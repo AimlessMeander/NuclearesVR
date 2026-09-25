@@ -41,8 +41,8 @@ namespace NuclearesVR
         internal static ConfigEntry<bool> EyeOcclusionCulling;
         internal static ConfigEntry<float> EyeDefaultLayerDistance;
         internal static ConfigEntry<float> VrShadowDistance;
-        internal static ConfigEntry<float> HeavyMeshDistance;
-        internal static ConfigEntry<int> HeavyMeshVertices;
+        internal static ConfigEntry<float> FarSmallObjectDistance;
+        internal static ConfigEntry<float> FarSmallObjectSize;
         internal static ConfigEntry<bool> MonitorShowsHeadset;
         internal static ConfigEntry<bool> ShareWaterReflection;
         internal static ConfigEntry<int> WaterReflectionEveryNthFrame;
@@ -104,13 +104,14 @@ namespace NuclearesVR
                 new ConfigDescription("How far away (metres) shadows are drawn while VR runs; the game's own setting is 200. Every eye re-draws all the geometry within this distance into its shadow map, " +
                                       "and the game's merged plant-wide meshes make that very expensive. Shadows near you are unchanged. 0 = keep the game's own setting.",
                     new AcceptableValueRange<float>(0f, 300f)));
-            HeavyMeshDistance = Config.Bind("Graphics", "HeavyMeshDistance", 80f,
-                new ConfigDescription("Very detailed models (see HeavyMeshVertices) that are entirely farther away than this many metres are not drawn in the headset. " +
-                                      "The game draws them with no simpler versions, and they are what makes a few views (for example looking out over the reactor pool) slow. " +
-                                      "Uses the nearest point of each model, so nothing you are standing next to disappears. 0 = draw everything.",
+            FarSmallObjectDistance = Config.Bind("Graphics", "FarSmallObjectDistance", 100f,
+                new ConfigDescription("Small objects (see FarSmallObjectSize) whose nearest point is farther away than this many metres are not drawn in the headset. " +
+                                      "The plant has thousands of tiny objects (bolts, fittings, lamps) that are each a separate draw call, drawn once per eye; measured at the worst view, " +
+                                      "the 3,000 that were over 100 m away cost about half of the frame time. Big objects such as walls are not affected. 0 = draw everything.",
                     new AcceptableValueRange<float>(0f, 400f)));
-            HeavyMeshVertices = Config.Bind("Graphics", "HeavyMeshVertices", 30000,
-                new ConfigDescription("What counts as a very detailed model for HeavyMeshDistance: at least this many vertices.", new AcceptableValueRange<int>(1000, 1000000)));
+            FarSmallObjectSize = Config.Bind("Graphics", "FarSmallObjectSize", 12f,
+                new ConfigDescription("What counts as a small object for FarSmallObjectDistance: an object whose bounding box is smaller than this many metres across (corner to corner).",
+                    new AcceptableValueRange<float>(1f, 60f)));
             MonitorShowsHeadset = Config.Bind("Graphics", "MonitorShowsHeadset", true,
                 "The game window shows the headset's view (left eye, cropped to the window) while VR runs. Costs almost nothing. false = a black window (only used with LightweightMonitorView on).");
             ShareWaterReflection = Config.Bind("Graphics", "ShareWaterReflection", true,

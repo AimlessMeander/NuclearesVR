@@ -95,7 +95,7 @@ namespace NuclearesVR.Vr
             }
 
             var fps = _perfFrames / elapsed;
-            var text = $"[perf] game {fps:F1} fps ({1000f / Mathf.Max(fps, 0.01f):F1} ms/frame), vsync={QualitySettings.vSyncCount}, heavy meshes hidden {_heavyHidden.Count}/{_heavyMeshes.Count}";
+            var text = $"[perf] game {fps:F1} fps ({1000f / Mathf.Max(fps, 0.01f):F1} ms/frame), vsync={QualitySettings.vSyncCount}, far small objects hidden {_farHiddenCount}/{_farCandidates.Length}";
             try
             {
                 var error = ETrackedPropertyError.TrackedProp_Success;

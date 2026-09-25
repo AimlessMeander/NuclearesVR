@@ -193,7 +193,7 @@ namespace NuclearesVR.Vr
             if (_worldMarker != null) _worldMarker.SetActive(false);
             HideHands();
             HideInfoPanel();
-            StopHeavyMeshes();
+            StopFarSmallObjects();
             RestoreVSync();
             RestoreShadowDistance();
             ReleaseControllerActions();
@@ -868,7 +868,7 @@ namespace NuclearesVR.Vr
                 UpdateVrInput();
                 ApplyVSyncPolicy();
                 ApplyShadowPolicy();
-                UpdateHeavyMeshes();
+                UpdateFarSmallObjects();
                 LogPerformance();
                 UpdateDynamicResolution();
 
