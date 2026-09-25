@@ -211,13 +211,19 @@ namespace NuclearesVR.Vr
                 if (!_mouseDown)
                 {
                     _dragOrigin = hand.WorldPos;
+                    _dragOut = Vector2.zero;
                 }
                 var yaw = _leftEyeCamera != null ? _leftEyeCamera.transform.eulerAngles.y : 0f;
                 var right = Quaternion.Euler(0f, yaw, 0f) * Vector3.right;
                 var moved = hand.WorldPos - _dragOrigin;
-                VrKeys.MouseOffset = new Vector2(
-                    Dead(Vector3.Dot(moved, right)) * Plugin.DragPixelsPerMeter.Value,
-                    Dead(moved.y) * Plugin.DragPixelsPerMeter.Value);
+                // The offset only follows the hand once it is more than the dead zone away from the last
+                // value, and it trails the hand by that distance. So tremor and small drifts change
+                // nothing, and reversing needs a deliberate move back. The game's 3-position switches
+                // step one way or the other on ANY change of the horizontal position, so without this
+                // they flipped at random.
+                _dragOut.x = Backlash(_dragOut.x, Vector3.Dot(moved, right));
+                _dragOut.y = Backlash(_dragOut.y, moved.y);
+                VrKeys.MouseOffset = _dragOut * Plugin.DragPixelsPerMeter.Value;
             }
             else
             {
@@ -258,9 +264,13 @@ namespace NuclearesVR.Vr
             VrKeys.TurnInput = turn * Plugin.TurnSpeed.Value;
         }
 
-        private static float Dead(float meters)
+        private Vector2 _dragOut;
+
+        private static float Backlash(float current, float target)
         {
-            return Mathf.Sign(meters) * Mathf.Max(0f, Mathf.Abs(meters) - DragDeadzoneMeters);
+            if (target - current > DragDeadzoneMeters) return target - DragDeadzoneMeters;
+            if (target - current < -DragDeadzoneMeters) return target + DragDeadzoneMeters;
+            return current;
         }
 
         private void AddMapped(bool pressed, KeyCode key)
