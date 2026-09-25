@@ -194,6 +194,7 @@ namespace NuclearesVR.Vr
             HideHands();
             HideInfoPanel();
             RestoreVSync();
+            RestoreShadowDistance();
             ReleaseControllerActions();
             DestroyEyeCameras();
             _mainCamera = null;
@@ -865,6 +866,7 @@ namespace NuclearesVR.Vr
 
                 UpdateVrInput();
                 ApplyVSyncPolicy();
+                ApplyShadowPolicy();
                 LogPerformance();
                 UpdateDynamicResolution();
 

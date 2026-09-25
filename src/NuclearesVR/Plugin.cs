@@ -40,6 +40,7 @@ namespace NuclearesVR
         internal static ConfigEntry<bool> DynamicResolution;
         internal static ConfigEntry<bool> EyeOcclusionCulling;
         internal static ConfigEntry<float> EyeDefaultLayerDistance;
+        internal static ConfigEntry<float> VrShadowDistance;
         internal static ConfigEntry<bool> MonitorShowsHeadset;
         internal static ConfigEntry<bool> ShareWaterReflection;
         internal static ConfigEntry<int> WaterReflectionEveryNthFrame;
@@ -97,6 +98,10 @@ namespace NuclearesVR
                                       "This is how far away (metres) objects on that layer are still drawn in the headset. Terrain, sky and other layers keep the game's own draw distance. " +
                                       "0 = no limit (slower, but nothing distant disappears).",
                     new AcceptableValueRange<float>(0f, 1000f)));
+            VrShadowDistance = Config.Bind("Graphics", "ShadowDistance", 60f,
+                new ConfigDescription("How far away (metres) shadows are drawn while VR runs; the game's own setting is 200. Every eye re-draws all the geometry within this distance into its shadow map, " +
+                                      "and the game's merged plant-wide meshes make that very expensive. Shadows near you are unchanged. 0 = keep the game's own setting.",
+                    new AcceptableValueRange<float>(0f, 300f)));
             MonitorShowsHeadset = Config.Bind("Graphics", "MonitorShowsHeadset", true,
                 "The game window shows the headset's view (left eye, cropped to the window) while VR runs. Costs almost nothing. false = a black window (only used with LightweightMonitorView on).");
             ShareWaterReflection = Config.Bind("Graphics", "ShareWaterReflection", true,

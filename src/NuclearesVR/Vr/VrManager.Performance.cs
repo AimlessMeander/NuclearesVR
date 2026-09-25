@@ -38,6 +38,37 @@ namespace NuclearesVR.Vr
             }
         }
 
+        private float _originalShadowDistance = -1f;
+
+        /// <summary>Shortens the shadow distance while VR runs (see the setting); the game may reapply its own, so this is checked every frame.</summary>
+        private void ApplyShadowPolicy()
+        {
+            var limit = Plugin.VrShadowDistance.Value;
+            if (limit <= 0f)
+            {
+                return;
+            }
+            if (_originalShadowDistance < 0f)
+            {
+                _originalShadowDistance = QualitySettings.shadowDistance;
+            }
+            if (QualitySettings.shadowDistance > limit + 0.01f)
+            {
+                var was = QualitySettings.shadowDistance;
+                QualitySettings.shadowDistance = limit;
+                LogThrottled("shadowdist", $"Shadow distance {was:F0} m -> {limit:F0} m while VR runs.");
+            }
+        }
+
+        private void RestoreShadowDistance()
+        {
+            if (_originalShadowDistance >= 0f)
+            {
+                QualitySettings.shadowDistance = _originalShadowDistance;
+                _originalShadowDistance = -1f;
+            }
+        }
+
         private void RestoreVSync()
         {
             if (_originalVSync >= 0)
