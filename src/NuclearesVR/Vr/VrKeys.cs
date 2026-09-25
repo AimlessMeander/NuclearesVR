@@ -36,13 +36,15 @@ namespace NuclearesVR.Vr
         internal static bool AimValid;
         internal static Vector3 AimOrigin;
         internal static Vector3 AimDirection;
+        internal static Quaternion AimRotation = Quaternion.identity;
         internal static Transform AimCamera;
 
-        internal static void SetAim(bool valid, Vector3 origin, Vector3 direction, Transform camera)
+        internal static void SetAim(bool valid, Vector3 origin, Quaternion rotation, Transform camera)
         {
             AimValid = valid;
             AimOrigin = origin;
-            AimDirection = direction;
+            AimRotation = rotation;
+            AimDirection = rotation * Vector3.forward;
             AimCamera = camera;
         }
 
@@ -119,6 +121,7 @@ namespace NuclearesVR.Vr
             Patch(harmony, AccessTools.Method(typeof(Input), "GetMouseButton", new[] { typeof(int) }), nameof(MouseButtonPostfix));
             Patch(harmony, AccessTools.Method(typeof(Input), "GetMouseButtonDown", new[] { typeof(int) }), nameof(MouseButtonDownPostfix));
             Patch(harmony, AccessTools.Method(typeof(Input), "GetMouseButtonUp", new[] { typeof(int) }), nameof(MouseButtonUpPostfix));
+            PatchEventSystem(harmony);
             Patch(harmony, AccessTools.Method(typeof(Interface), "Rayo", new[] { typeof(Transform) }), nameof(RayoPrefix), prefix: true);
             Patch(harmony, AccessTools.Method(typeof(Interface), "Rayo", new[] { typeof(Transform), typeof(LayerMask) }), nameof(RayoLayersPrefix), prefix: true);
             Patch(harmony, AccessTools.Method(typeof(Interface), "GetObjetoEnLaMira"), nameof(ObjetoEnLaMiraPrefix), prefix: true);
@@ -173,6 +176,64 @@ namespace NuclearesVR.Vr
             if (VrKeys.TurnInput != 0f && axisName == "Mouse X")
             {
                 __result += VrKeys.TurnInput;
+            }
+        }
+
+        // The tablet's pages (Checklist, Bank, Alarms, Comms...) are world-space UI canvases whose event
+        // camera is the game camera. Unity's event system works out what the pointer is over during its
+        // own Update, when the camera is back at the body's view - so while it runs, the camera is put
+        // on the controller, exactly as it is for the mouse events at the start of the frame.
+        internal struct CameraSwap
+        {
+            public bool Moved;
+            public Vector3 LocalPosition;
+            public Quaternion LocalRotation;
+        }
+
+        private static void PatchEventSystem(Harmony harmony)
+        {
+            try
+            {
+                var update = AccessTools.Method(typeof(UnityEngine.EventSystems.EventSystem), "Update");
+                if (update == null)
+                {
+                    Plugin.Logger.LogWarning("Input patch: EventSystem.Update not found - tablet UI pages will not respond to the controllers.");
+                    return;
+                }
+                harmony.Patch(update,
+                    prefix: new HarmonyMethod(typeof(InputPatches), nameof(EventSystemPrefix)),
+                    postfix: new HarmonyMethod(typeof(InputPatches), nameof(EventSystemPostfix)));
+                Plugin.Logger.LogInfo("Input patch applied: EventSystem.Update");
+            }
+            catch (System.Exception ex)
+            {
+                Plugin.Logger.LogError($"Input patch 'EventSystem.Update' failed: {ex}");
+            }
+        }
+
+        private static void EventSystemPrefix(out CameraSwap __state)
+        {
+            __state = default;
+            var camera = VrKeys.AimCamera;
+            if (!VrKeys.AimValid || camera == null)
+            {
+                return;
+            }
+            __state = new CameraSwap { Moved = true, LocalPosition = camera.localPosition, LocalRotation = camera.localRotation };
+            camera.SetPositionAndRotation(VrKeys.AimOrigin, VrKeys.AimRotation);
+        }
+
+        private static void EventSystemPostfix(CameraSwap __state)
+        {
+            if (!__state.Moved)
+            {
+                return;
+            }
+            var camera = VrKeys.AimCamera;
+            if (camera != null)
+            {
+                camera.localPosition = __state.LocalPosition;
+                camera.localRotation = __state.LocalRotation;
             }
         }
 

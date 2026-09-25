@@ -541,6 +541,7 @@ namespace NuclearesVR.Vr
 
         private void DestroyEyeCameras()
         {
+            RestoreMainMask();
             if (_leftEyeCamera != null) Destroy(_leftEyeCamera.gameObject);
             if (_rightEyeCamera != null) Destroy(_rightEyeCamera.gameObject);
             _effectPairs.Clear();
@@ -714,17 +715,29 @@ namespace NuclearesVR.Vr
             {
                 return;
             }
+            UpdateLiquidLayers();
             SyncOneEyeCamera(_leftEyeCamera);
             SyncOneEyeCamera(_rightEyeCamera);
+            ApplyLiquidMask();
         }
 
         private void SyncOneEyeCamera(Camera eye)
         {
             eye.clearFlags = _mainCamera.clearFlags;
             eye.backgroundColor = _mainCamera.backgroundColor;
-            eye.cullingMask = _mainCamera.cullingMask;
+            eye.cullingMask = _mainCamera.cullingMask | (LiquidVisibleInEyes ? _liquidLayerMask : 0);
             eye.renderingPath = ForwardOnEyes ? RenderingPath.Forward : _mainCamera.renderingPath;
             eye.allowMSAA = true; // the main camera may have it off (Deferred cannot use it); the eyes are Forward
+
+            // The game's water simulation (ZibraAI) hooks every rendering camera except those of type VR,
+            // and builds native GPU resources for each one. See VrManager.Liquid.cs.
+            var wantedType = LiquidVisibleInEyes ? CameraType.Game : CameraType.VR;
+            if (eye.cameraType != wantedType)
+            {
+                eye.cameraType = wantedType;
+                Plugin.Logger.LogInfo($"Eye camera '{eye.name}' type set to {wantedType}" +
+                                      (wantedType == CameraType.VR ? " (the water simulation skips it)." : "."));
+            }
             SyncEffectsEnabled(eye);
             if (_mirrorLayer >= 0)
             {

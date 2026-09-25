@@ -245,7 +245,7 @@ namespace NuclearesVR.Vr
             AddMapped(RightHand.StickClick, Plugin.KeyRightStick.Value);
             VrKeys.Apply(_wantedKeys);
 
-            VrKeys.SetAim(allowed && hand.PoseValid, hand.WorldPos, hand.WorldRot * Vector3.forward,
+            VrKeys.SetAim(allowed && hand.PoseValid, hand.WorldPos, hand.WorldRot,
                           _mainCamera != null ? _mainCamera.transform : null);
 
             // Holding a grip is the right mouse button (detail box on gauges, switch guards, zoom).

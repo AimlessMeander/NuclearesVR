@@ -33,6 +33,7 @@ namespace NuclearesVR
         internal static ConfigEntry<bool> WalkTowardsHead;
         internal static ConfigEntry<VrStartMode> StartMode;
         internal static ConfigEntry<bool> GripIsRightClick;
+        internal static ConfigEntry<bool> LiquidInVr;
         internal static ConfigEntry<int> EyeMsaa;
         internal static ConfigEntry<float> RenderScale;
         internal static ConfigEntry<KeyCode> KeyA, KeyB, KeyX, KeyY;
@@ -60,6 +61,11 @@ namespace NuclearesVR
                 "Always = always start VR when a game loads (launches SteamVR if needed). Never = never start VR.");
             GripIsRightClick = Config.Bind("Controllers", "GripIsRightClick", true,
                 "Holding a grip is the right mouse button: hold it on a gauge or component for its detail box, open switch guards, and with the stick forward/back to zoom.");
+            LiquidInVr = Config.Bind("Graphics", "LiquidSimulationInVr", true,
+                "The game's real-time water simulation (ZibraAI) is active in the control room, reactor and service areas. It shares one set of GPU textures between all " +
+                "cameras, and the game window and the two headset cameras have different sizes, which is suspected of causing random graphics-driver crashes. " +
+                "true = the water is drawn in the headset, and hidden from the game's own main camera (the monitor mirror) so that only the two same-size headset cameras use it. " +
+                "false = the headset cameras skip the simulation entirely (safest, but the water, e.g. in the core pool, is not visible in the headset).");
             EyeMsaa = Config.Bind("Graphics", "Msaa", 4,
                 new ConfigDescription("Anti-aliasing (MSAA samples) for the headset view: 1 = off, 2, 4 or 8. Smooths jagged edges; costs GPU time. Applied when a game loads.",
                     new AcceptableValueList<int>(1, 2, 4, 8)));
