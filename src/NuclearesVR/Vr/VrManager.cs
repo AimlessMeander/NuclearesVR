@@ -188,6 +188,7 @@ namespace NuclearesVR.Vr
             if (_worldMarker != null) _worldMarker.SetActive(false);
             HideHands();
             HideInfoPanel();
+            RestoreVSync();
             ReleaseControllerActions();
             DestroyEyeCameras();
             _mainCamera = null;
@@ -794,6 +795,8 @@ namespace NuclearesVR.Vr
                 OpenVR.Compositor.WaitGetPoses(_renderPoses, EmptyPoseArray);
 
                 UpdateVrInput();
+                ApplyVSyncPolicy();
+                LogPerformance();
 
                 var playerLook = PlayerLook.Instancia;
                 if (playerLook == null)

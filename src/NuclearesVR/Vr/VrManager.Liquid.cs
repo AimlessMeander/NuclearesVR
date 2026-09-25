@@ -30,6 +30,61 @@ namespace NuclearesVR.Vr
         // on one of these, hiding it would blank the monitor view and the menus.
         private const int NeverStripLayers = (1 << 0) | (1 << 5);
 
+        // ---- correct view rays for the headset cameras ----
+        // The simulation builds its per-pixel view rays from the camera's field of view and aspect ratio,
+        // assuming an ordinary symmetric camera. The headset cameras use a custom off-centre frustum
+        // (set through projectionMatrix), so those rays were wrong and the water looked off in VR. For
+        // our cameras, build the rays from the real projection matrix instead.
+        private static bool _liquidRaysPatched;
+
+        private static void PatchLiquidEyeRays(Type liquidType)
+        {
+            if (_liquidRaysPatched)
+            {
+                return;
+            }
+            _liquidRaysPatched = true;
+            try
+            {
+                var original = HarmonyLib.AccessTools.Method(liquidType, "CalculateEyeRayCameraCoeficients", new[] { typeof(Camera) });
+                if (original == null)
+                {
+                    Plugin.Logger.LogWarning("Water simulation: CalculateEyeRayCameraCoeficients not found - water may look off in VR.");
+                    return;
+                }
+                var harmony = new HarmonyLib.Harmony(Plugin.Guid + ".liquid");
+                harmony.Patch(original, prefix: new HarmonyLib.HarmonyMethod(typeof(VrManager), nameof(EyeRayPrefix)));
+                Plugin.Logger.LogInfo("Water simulation: view rays for the headset cameras now use the real projection.");
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogError($"Water simulation ray patch failed: {ex}");
+            }
+        }
+
+        private static bool EyeRayPrefix(Camera cam, ref Matrix4x4 __result)
+        {
+            if (cam == null || !cam.name.StartsWith("NuclearesVR_"))
+            {
+                return true; // the game's own cameras: unchanged
+            }
+            var p = cam.projectionMatrix;
+            var halfWidth = 1f / p[0, 0];
+            var halfHeight = 1f / p[1, 1];
+            var centreX = p[0, 2] / p[0, 0];
+            var centreY = p[1, 2] / p[1, 1];
+            var t = cam.transform;
+            var right = t.right * halfWidth;
+            var down = -t.up * halfHeight;
+            var centre = t.forward + t.right * centreX + t.up * centreY;
+            __result = new Matrix4x4(
+                new Vector4(right.x, right.y, right.z, 0f),
+                new Vector4(down.x, down.y, down.z, 0f),
+                new Vector4(centre.x, centre.y, centre.z, 0f),
+                Vector4.zero).transpose;
+            return false;
+        }
+
         private bool LiquidStripSafe => (_liquidLayerMask & NeverStripLayers) == 0;
 
         /// <summary>The eye cameras are ordinary cameras (the simulation draws for them) unless the setting is off or stripping is not safe.</summary>
@@ -57,6 +112,10 @@ namespace NuclearesVR.Vr
                 if (_liquidType == null)
                 {
                     Plugin.Logger.LogInfo("Water simulation type not found - nothing to work around.");
+                }
+                else
+                {
+                    PatchLiquidEyeRays(_liquidType);
                 }
             }
             if (_liquidType == null)

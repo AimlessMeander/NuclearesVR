@@ -34,6 +34,7 @@ namespace NuclearesVR
         internal static ConfigEntry<VrStartMode> StartMode;
         internal static ConfigEntry<bool> GripIsRightClick;
         internal static ConfigEntry<bool> LiquidInVr;
+        internal static ConfigEntry<bool> DisableVsyncInVr;
         internal static ConfigEntry<int> EyeMsaa;
         internal static ConfigEntry<float> RenderScale;
         internal static ConfigEntry<KeyCode> KeyA, KeyB, KeyX, KeyY;
@@ -66,6 +67,9 @@ namespace NuclearesVR
                 "cameras, and the game window and the two headset cameras have different sizes, which is suspected of causing random graphics-driver crashes. " +
                 "true = the water is drawn in the headset, and hidden from the game's own main camera (the monitor mirror) so that only the two same-size headset cameras use it. " +
                 "false = the headset cameras skip the simulation entirely (safest, but the water, e.g. in the core pool, is not visible in the headset).");
+            DisableVsyncInVr = Config.Bind("Graphics", "DisableVsyncInVr", true,
+                "Turns the game's VSync off while VR runs (restored afterwards). The headset sets the frame rate; with VSync on, the game also waits for the monitor's refresh, " +
+                "which can leave the frame rate stuck at a fraction of the headset's (for example 30).");
             EyeMsaa = Config.Bind("Graphics", "Msaa", 4,
                 new ConfigDescription("Anti-aliasing (MSAA samples) for the headset view: 1 = off, 2, 4 or 8. Smooths jagged edges; costs GPU time. Applied when a game loads.",
                     new AcceptableValueList<int>(1, 2, 4, 8)));
