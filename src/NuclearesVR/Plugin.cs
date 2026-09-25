@@ -49,7 +49,7 @@ namespace NuclearesVR
         internal static ConfigEntry<float> MinRenderScale;
         internal static ConfigEntry<int> EyeMsaa;
         internal static ConfigEntry<float> RenderScale;
-        internal static ConfigEntry<KeyCode> KeyA, KeyB, KeyX, KeyY;
+        internal static ConfigEntry<KeyCode> KeyA, KeyB, KeyX, KeyXAlso, KeyY;
         internal static ConfigEntry<KeyCode> KeyLeftGrip, KeyRightGrip, KeyLeftStick, KeyRightStick;
 
         private Harmony _harmony;
@@ -130,11 +130,12 @@ namespace NuclearesVR
             KeyA = Config.Bind("Buttons", "A", KeyCode.F, keys + " Default: flashlight.");
             KeyB = Config.Bind("Buttons", "B", KeyCode.Tab, keys + " Default: tablet.");
             KeyX = Config.Bind("Buttons", "X", KeyCode.Return, keys + " Default: Enter (next step in the tutorial).");
+            KeyXAlso = Config.Bind("Buttons", "XAlso", KeyCode.Space, keys + " A second key pressed together with X. Default: Space (jump).");
             KeyY = Config.Bind("Buttons", "Y", KeyCode.Escape, keys + " Default: menu.");
             KeyLeftGrip = Config.Bind("Buttons", "LeftGrip", KeyCode.None, keys);
             KeyRightGrip = Config.Bind("Buttons", "RightGrip", KeyCode.None, keys);
             KeyLeftStick = Config.Bind("Buttons", "LeftStickClick", KeyCode.LeftShift, keys + " Default: run.");
-            KeyRightStick = Config.Bind("Buttons", "RightStickClick", KeyCode.None, keys);
+            KeyRightStick = Config.Bind("Buttons", "RightStickClick", KeyCode.G, keys + " Default: Geiger counter.");
             Logger.LogInfo($"{Name} {Version} loading...");
 
             _harmony = new Harmony(Guid);

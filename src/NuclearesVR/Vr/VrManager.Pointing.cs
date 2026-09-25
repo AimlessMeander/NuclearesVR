@@ -260,6 +260,7 @@ namespace NuclearesVR.Vr
             AddMapped(ButtonA, Plugin.KeyA.Value);
             AddMapped(ButtonB, Plugin.KeyB.Value);
             AddMapped(ButtonX, Plugin.KeyX.Value);
+            AddMapped(ButtonX, Plugin.KeyXAlso.Value);
             AddMapped(ButtonY, Plugin.KeyY.Value);
             AddMapped(LeftHand.Grip, Plugin.KeyLeftGrip.Value);
             AddMapped(RightHand.Grip, Plugin.KeyRightGrip.Value);
