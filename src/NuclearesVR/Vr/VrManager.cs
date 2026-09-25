@@ -38,6 +38,9 @@ namespace NuclearesVR.Vr
         }
 
         private bool _active;
+
+        /// <summary>True while VR is running (the game is in a headset session).</summary>
+        internal static bool VrRunning { get; private set; }
         private CVRSystem _system;
         private readonly TrackedDevicePose_t[] _renderPoses = new TrackedDevicePose_t[OpenVR.k_unMaxTrackedDeviceCount];
 
@@ -180,6 +183,8 @@ namespace NuclearesVR.Vr
         {
             Plugin.Logger.LogInfo("Back at the start menu - shutting VR down.");
             _active = false;
+            VrRunning = false;
+            RemoveMonitorMirror();
             _shuttingDown = true;
             StopAllCoroutines();
             _mirrorVisible = false;
@@ -269,6 +274,7 @@ namespace NuclearesVR.Vr
                 StartCoroutine(SubmitLoop());
                 _noPlayerSince = -1f;
                 _active = true;
+                VrRunning = true;
             }
             catch (Exception ex)
             {
@@ -546,6 +552,7 @@ namespace NuclearesVR.Vr
 
         private void DestroyEyeCameras()
         {
+            RemoveMonitorMirror();
             RestoreMainMask();
             _eyeNear = _eyeFar = -1f;
             _appliedLayerDistance = -1f;
@@ -919,6 +926,7 @@ namespace NuclearesVR.Vr
                 PositionHands();
                 UpdateControllerActions();
                 UpdateInfoPanel();
+                UpdateMonitorMirror();
 
                 // After head tracking, so the click ray below uses the same
                 // camera pose the game will use for the actual click.

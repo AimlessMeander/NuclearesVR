@@ -40,6 +40,9 @@ namespace NuclearesVR
         internal static ConfigEntry<bool> DynamicResolution;
         internal static ConfigEntry<bool> EyeOcclusionCulling;
         internal static ConfigEntry<float> EyeDefaultLayerDistance;
+        internal static ConfigEntry<bool> MonitorShowsHeadset;
+        internal static ConfigEntry<bool> ShareWaterReflection;
+        internal static ConfigEntry<int> WaterReflectionEveryNthFrame;
         internal static ConfigEntry<float> MinRenderScale;
         internal static ConfigEntry<int> EyeMsaa;
         internal static ConfigEntry<float> RenderScale;
@@ -89,11 +92,18 @@ namespace NuclearesVR
             EyeOcclusionCulling = Config.Bind("Graphics", "EyeOcclusionCulling", true,
                 "Occlusion culling for the headset cameras: skips drawing objects hidden behind walls. Measured to cut the frame cost of a busy view roughly in half. " +
                 "It was switched off originally because it may once have made walls disappear; if you see walls or scenery vanish, turn this off and tell me.");
-            EyeDefaultLayerDistance = Config.Bind("Graphics", "EyeDefaultLayerDistance", 100f,
+            EyeDefaultLayerDistance = Config.Bind("Graphics", "EyeDefaultLayerDistance", 150f,
                 new ConfigDescription("Most of the game's objects are on one layer ('Default'); thousands of them in the distance made the headset views very expensive. " +
                                       "This is how far away (metres) objects on that layer are still drawn in the headset. Terrain, sky and other layers keep the game's own draw distance. " +
                                       "0 = no limit (slower, but nothing distant disappears).",
                     new AcceptableValueRange<float>(0f, 1000f)));
+            MonitorShowsHeadset = Config.Bind("Graphics", "MonitorShowsHeadset", true,
+                "The game window shows the headset's view (left eye, cropped to the window) while VR runs. Costs almost nothing. false = a black window (only used with LightweightMonitorView on).");
+            ShareWaterReflection = Config.Bind("Graphics", "ShareWaterReflection", true,
+                "The game's water planes render an extra mirrored copy of the scene for every camera that sees them; with two eyes that made looking at the reactor pool very expensive. " +
+                "true = the right eye reuses the left eye's reflection, and the reflection is refreshed only every few frames.");
+            WaterReflectionEveryNthFrame = Config.Bind("Graphics", "WaterReflectionEveryNthFrame", 2,
+                new ConfigDescription("With ShareWaterReflection on: refresh the water reflection every this many frames (1 = every frame, 2 = every other frame...).", new AcceptableValueRange<int>(1, 8)));
             EyeMsaa = Config.Bind("Graphics", "Msaa", 4,
                 new ConfigDescription("Anti-aliasing (MSAA samples) for the headset view: 1 = off, 2, 4 or 8. Smooths jagged edges; costs GPU time. Applied when a game loads.",
                     new AcceptableValueList<int>(1, 2, 4, 8)));
@@ -115,6 +125,7 @@ namespace NuclearesVR
             _harmony = new Harmony(Guid);
             _harmony.PatchAll();
             Vr.InputPatches.Apply(_harmony);
+            Vr.VrWaterPatches.Apply(_harmony);
 
             // Awake() runs in Nucleares' very first bootstrap scene, before Steam
             // even initializes - and that scene gets torn down and replaced
