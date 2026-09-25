@@ -39,6 +39,7 @@ namespace NuclearesVR
         internal static ConfigEntry<bool> FixLiquidRays;
         internal static ConfigEntry<bool> DynamicResolution;
         internal static ConfigEntry<bool> EyeOcclusionCulling;
+        internal static ConfigEntry<float> EyeDefaultLayerDistance;
         internal static ConfigEntry<float> MinRenderScale;
         internal static ConfigEntry<int> EyeMsaa;
         internal static ConfigEntry<float> RenderScale;
@@ -85,9 +86,14 @@ namespace NuclearesVR
                 "and raises it again when there is room. RenderScale is the sharpest it will go.");
             MinRenderScale = Config.Bind("Graphics", "MinRenderScale", 0.55f,
                 new ConfigDescription("The lowest resolution scale dynamic resolution will use.", new AcceptableValueRange<float>(0.3f, 1.0f)));
-            EyeOcclusionCulling = Config.Bind("Graphics", "EyeOcclusionCulling", false,
-                "Occlusion culling for the headset cameras: skips drawing objects hidden behind walls. Can save a lot in a big building, but it was switched off originally " +
-                "because it once made walls disappear with the headset's off-centre view.");
+            EyeOcclusionCulling = Config.Bind("Graphics", "EyeOcclusionCulling", true,
+                "Occlusion culling for the headset cameras: skips drawing objects hidden behind walls. Measured to cut the frame cost of a busy view roughly in half. " +
+                "It was switched off originally because it may once have made walls disappear; if you see walls or scenery vanish, turn this off and tell me.");
+            EyeDefaultLayerDistance = Config.Bind("Graphics", "EyeDefaultLayerDistance", 100f,
+                new ConfigDescription("Most of the game's objects are on one layer ('Default'); thousands of them in the distance made the headset views very expensive. " +
+                                      "This is how far away (metres) objects on that layer are still drawn in the headset. Terrain, sky and other layers keep the game's own draw distance. " +
+                                      "0 = no limit (slower, but nothing distant disappears).",
+                    new AcceptableValueRange<float>(0f, 1000f)));
             EyeMsaa = Config.Bind("Graphics", "Msaa", 4,
                 new ConfigDescription("Anti-aliasing (MSAA samples) for the headset view: 1 = off, 2, 4 or 8. Smooths jagged edges; costs GPU time. Applied when a game loads.",
                     new AcceptableValueList<int>(1, 2, 4, 8)));

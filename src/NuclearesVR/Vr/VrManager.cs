@@ -548,6 +548,7 @@ namespace NuclearesVR.Vr
         {
             RestoreMainMask();
             _eyeNear = _eyeFar = -1f;
+            _appliedLayerDistance = -1f;
             if (_leftEyeCamera != null) Destroy(_leftEyeCamera.gameObject);
             if (_rightEyeCamera != null) Destroy(_rightEyeCamera.gameObject);
             _effectPairs.Clear();
@@ -722,6 +723,7 @@ namespace NuclearesVR.Vr
                 return;
             }
             SyncEyeClipPlanes();
+            SyncEyeLayerDistances();
             UpdateLiquidLayers();
             UpdateGameMask();
             SyncOneEyeCamera(_leftEyeCamera);
@@ -730,6 +732,27 @@ namespace NuclearesVR.Vr
         }
 
         private float _eyeNear = -1f, _eyeFar = -1f;
+        private float _appliedLayerDistance = -1f;
+
+        /// <summary>
+        /// Limits how far objects on the Default layer are drawn in the headset (see the setting): the
+        /// benchmark showed the cost of a heavy view is almost entirely thousands of Default-layer
+        /// objects in the distance. Terrain, sky and the other layers keep the camera's own far plane.
+        /// </summary>
+        private void SyncEyeLayerDistances()
+        {
+            var distance = _benchFar > 0f ? _benchFar : Plugin.EyeDefaultLayerDistance.Value;
+            if (Mathf.Approximately(distance, _appliedLayerDistance))
+            {
+                return;
+            }
+            _appliedLayerDistance = distance;
+            var distances = new float[32]; // 0 = use the camera's far plane
+            distances[0] = distance;
+            _leftEyeCamera.layerCullDistances = distances;
+            _rightEyeCamera.layerCullDistances = distances;
+            Plugin.Logger.LogInfo($"Headset cameras: objects on the Default layer are drawn up to {(distance > 0f ? distance.ToString("F0") + " m" : "the full distance")}.");
+        }
 
         /// <summary>
         /// The game changes its camera's draw distance as the player moves between areas (a short one
@@ -741,7 +764,7 @@ namespace NuclearesVR.Vr
         private void SyncEyeClipPlanes()
         {
             var near = _mainCamera.nearClipPlane;
-            var far = _benchFar > 0f ? _benchFar : _mainCamera.farClipPlane;
+            var far = _mainCamera.farClipPlane;
             if (Mathf.Approximately(near, _eyeNear) && Mathf.Approximately(far, _eyeFar))
             {
                 return;
