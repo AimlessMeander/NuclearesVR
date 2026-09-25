@@ -227,7 +227,21 @@ namespace NuclearesVR.Vr
             }
             else
             {
-                VrKeys.MouseOffset = Vector2.zero;
+                // Keep the last offset for a few frames after letting go, so the game sees the button
+                // come up before the position moves. Zeroing it at once looked like a drag back the
+                // other way, and flipped 3-position switches the wrong way on release.
+                if (_mouseDown)
+                {
+                    _releaseHoldFrames = 6;
+                }
+                else if (_releaseHoldFrames > 0)
+                {
+                    _releaseHoldFrames--;
+                }
+                if (_releaseHoldFrames <= 0)
+                {
+                    VrKeys.MouseOffset = Vector2.zero;
+                }
             }
 
             if (wantDown != _mouseDown)
@@ -265,6 +279,7 @@ namespace NuclearesVR.Vr
         }
 
         private Vector2 _dragOut;
+        private int _releaseHoldFrames;
 
         private static float Backlash(float current, float target)
         {
