@@ -52,6 +52,10 @@ namespace NuclearesVR.Vr
             {
                 StartBenchmark();
             }
+            if (Input.GetKeyDown(KeyCode.V))
+            {
+                StartViewProbe();
+            }
             if (Input.GetKeyDown(KeyCode.Z))
             {
                 ToggleTextOnTop();
