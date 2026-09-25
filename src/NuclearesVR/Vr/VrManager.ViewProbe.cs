@@ -104,15 +104,30 @@ namespace NuclearesVR.Vr
                     Add("transparent/late queue (>=2500)", r);
                 }
                 Add("layer " + r.gameObject.layer + " " + LayerMask.LayerToName(r.gameObject.layer), r);
+
+                // How far away each object really is: to the NEAREST point of its bounds, so a huge merged
+                // mesh that reaches right up to you counts as close, whatever its centre is.
+                var nearest = Mathf.Sqrt(r.bounds.SqrDistance(head));
+                var band = nearest < 10f ? "0-10 m" : nearest < 25f ? "10-25 m" : nearest < 50f ? "25-50 m" : nearest < 100f ? "50-100 m" : "100+ m";
+                Add("nearest point " + band, r);
+                var size = r.bounds.size.magnitude;
+                Add(size > 60f ? "huge bounds (over 60 m across)" : size > 15f ? "large bounds (15-60 m across)" : "small bounds (under 15 m across)", r);
             }
-            foreach (var group in groups.Values.OrderByDescending(g => g.Vertices).Take(18))
+            foreach (var group in groups.Values.OrderByDescending(g => g.Vertices).Take(30))
             {
                 log.LogInfo($"[probe] group '{group.Name}': {group.Members.Count} renderers, {group.SubMeshes} draws, {group.Vertices:N0} vertices");
             }
             foreach (var r in visible.OrderByDescending(VertexCount).Take(12))
             {
-                log.LogInfo($"[probe] heaviest: {RendererPath(r.transform)} verts={VertexCount(r):N0} dist={(r.bounds.center - head).magnitude:F0} m " +
+                log.LogInfo($"[probe] heaviest: {RendererPath(r.transform)} verts={VertexCount(r):N0} centre={(r.bounds.center - head).magnitude:F0} m " +
+                            $"nearest={Mathf.Sqrt(r.bounds.SqrDistance(head)):F0} m size={r.bounds.size.magnitude:F0} m " +
                             $"layer={r.gameObject.layer} shader={(r.sharedMaterial != null ? r.sharedMaterial.shader.name : "-")}");
+            }
+            // The near ones matter most: everything within 25 m, heaviest first.
+            foreach (var r in visible.Where(x => x.bounds.SqrDistance(head) < 625f).OrderByDescending(VertexCount).Take(12))
+            {
+                log.LogInfo($"[probe] heaviest within 25 m: {RendererPath(r.transform)} verts={VertexCount(r):N0} " +
+                            $"nearest={Mathf.Sqrt(r.bounds.SqrDistance(head)):F0} m size={r.bounds.size.magnitude:F0} m");
             }
 
             // ---- other things that cost per frame ----
@@ -129,7 +144,9 @@ namespace NuclearesVR.Vr
             var results = new List<string>();
             yield return ProbeMeasure("baseline (nothing hidden)", null, null, results);
 
-            foreach (var group in groups.Values.Where(g => g.Members.Count >= 3).OrderByDescending(g => g.Vertices).Take(12))
+            foreach (var group in groups.Values.Where(g => g.Members.Count >= 3 &&
+                                                           (g.Name.StartsWith("nearest point") || g.Name.Contains("bounds") || g.Name.StartsWith("shader Standard") || g.Name.StartsWith("layer 0")))
+                                                .OrderBy(g => g.Name))
             {
                 var members = group.Members;
                 var before = new List<bool>();
