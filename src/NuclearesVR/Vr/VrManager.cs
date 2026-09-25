@@ -403,7 +403,7 @@ namespace NuclearesVR.Vr
                     }
                 }
 
-                var wantMirror = _mirrorQuad != null && (playerLook == null || CHistoria.Pausada);
+                var wantMirror = _mirrorQuad != null && (playerLook == null || CHistoria.Pausada || MenuOrDialogOpen());
                 if (wantMirror != _mirrorVisible)
                 {
                     _mirrorVisible = wantMirror;
@@ -422,6 +422,22 @@ namespace NuclearesVR.Vr
             catch (Exception ex)
             {
                 Plugin.Logger.LogError($"NuclearesVR Update error: {ex}");
+            }
+        }
+
+        /// <summary>
+        /// A menu or confirmation dialog that does not pause the game (the "put on the suit?" question,
+        /// pop-up help) is on the screen overlay, so it gets the virtual screen and a cursor as well.
+        /// </summary>
+        private static bool MenuOrDialogOpen()
+        {
+            try
+            {
+                return Interface.IsHayMenuEnPantalla;
+            }
+            catch
+            {
+                return false;
             }
         }
 

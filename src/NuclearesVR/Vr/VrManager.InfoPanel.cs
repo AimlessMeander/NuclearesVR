@@ -47,14 +47,7 @@ namespace NuclearesVR.Vr
             {
                 return false;
             }
-            var group = PanelInfoField.GetValue(Interface.Instancia) as CanvasGroup;
-            if (group == null || !group.gameObject.activeInHierarchy || group.alpha < 0.01f)
-            {
-                return false;
-            }
-            var rect = group.transform as RectTransform;
-            var canvas = group.GetComponentInParent<Canvas>();
-            if (rect == null || canvas == null)
+            if (!FindInfoRect(out var rect, out var canvas))
             {
                 return false;
             }
@@ -82,6 +75,36 @@ namespace NuclearesVR.Vr
             var aspect = ((x1 - x0) * Screen.width) / ((y1 - y0) * Screen.height);
             _infoQuad.transform.localScale = new Vector3(InfoPanelWidth, InfoPanelWidth / aspect, 1f);
             return true;
+        }
+
+        private static readonly System.Reflection.FieldInfo TutorialContainerField =
+            AccessTools.Field(typeof(Interface.CAvisos.CTutorial), "Contenedor");
+
+        /// <summary>
+        /// The on-screen box to show in the headset: the component information box if it is open,
+        /// otherwise the tutorial's instruction box.
+        /// </summary>
+        private static bool FindInfoRect(out RectTransform rect, out Canvas canvas)
+        {
+            rect = null;
+            canvas = null;
+            var group = PanelInfoField.GetValue(Interface.Instancia) as CanvasGroup;
+            if (group != null && group.gameObject.activeInHierarchy && group.alpha >= 0.01f)
+            {
+                rect = group.transform as RectTransform;
+                canvas = group.GetComponentInParent<Canvas>();
+                return rect != null && canvas != null;
+            }
+
+            if (Interface.CAvisos.Tutorial != null && Interface.CAvisos.Tutorial.Visible &&
+                TutorialContainerField != null &&
+                TutorialContainerField.GetValue(Interface.CAvisos.Tutorial) is GameObject container)
+            {
+                rect = container.transform as RectTransform;
+                canvas = container.GetComponentInParent<Canvas>();
+                return rect != null && canvas != null;
+            }
+            return false;
         }
 
         private void EnsureInfoQuad()

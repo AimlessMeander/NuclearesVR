@@ -129,7 +129,7 @@ namespace NuclearesVR
                                 "Use the game's own key bindings if you changed them.";
             KeyA = Config.Bind("Buttons", "A", KeyCode.F, keys + " Default: flashlight.");
             KeyB = Config.Bind("Buttons", "B", KeyCode.Tab, keys + " Default: tablet.");
-            KeyX = Config.Bind("Buttons", "X", KeyCode.None, keys);
+            KeyX = Config.Bind("Buttons", "X", KeyCode.Return, keys + " Default: Enter (next step in the tutorial).");
             KeyY = Config.Bind("Buttons", "Y", KeyCode.Escape, keys + " Default: menu.");
             KeyLeftGrip = Config.Bind("Buttons", "LeftGrip", KeyCode.None, keys);
             KeyRightGrip = Config.Bind("Buttons", "RightGrip", KeyCode.None, keys);

@@ -48,6 +48,7 @@ CONTROLS (Quest / Touch layout)
    Right stick .......... Turn.
    A .................... Flashlight
    B .................... Operations tablet
+   X .................... Enter (next step in the tutorial)
    Y .................... Menu (pause)
    Left stick click ..... Run
    Keyboard: End ........ Recenter the view (do this when you are sitting comfortably).
