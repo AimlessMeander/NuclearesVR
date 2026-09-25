@@ -35,6 +35,11 @@ namespace NuclearesVR
         internal static ConfigEntry<bool> GripIsRightClick;
         internal static ConfigEntry<bool> LiquidInVr;
         internal static ConfigEntry<bool> DisableVsyncInVr;
+        internal static ConfigEntry<bool> LightweightMonitorView;
+        internal static ConfigEntry<bool> FixLiquidRays;
+        internal static ConfigEntry<bool> DynamicResolution;
+        internal static ConfigEntry<bool> EyeOcclusionCulling;
+        internal static ConfigEntry<float> MinRenderScale;
         internal static ConfigEntry<int> EyeMsaa;
         internal static ConfigEntry<float> RenderScale;
         internal static ConfigEntry<KeyCode> KeyA, KeyB, KeyX, KeyY;
@@ -70,6 +75,19 @@ namespace NuclearesVR
             DisableVsyncInVr = Config.Bind("Graphics", "DisableVsyncInVr", true,
                 "Turns the game's VSync off while VR runs (restored afterwards). The headset sets the frame rate; with VSync on, the game also waits for the monitor's refresh, " +
                 "which can leave the frame rate stuck at a fraction of the headset's (for example 30).");
+            LightweightMonitorView = Config.Bind("Graphics", "LightweightMonitorView", true,
+                "While VR runs, the game's own camera (the monitor mirror) draws nothing and its heavy effects are switched off, which saves a large amount of GPU time. " +
+                "The monitor shows a black window while you play in VR. false = keep the monitor mirror (slower).");
+            FixLiquidRays = Config.Bind("Graphics", "FixLiquidRays", false,
+                "Experimental: correct the water simulation's view rays for the headset cameras. Made the water look worse in testing, so off.");
+            DynamicResolution = Config.Bind("Graphics", "DynamicResolution", false,
+                "Lowers the headset picture's resolution when the GPU cannot keep up with the headset's refresh rate (some views are much more expensive than others), " +
+                "and raises it again when there is room. RenderScale is the sharpest it will go.");
+            MinRenderScale = Config.Bind("Graphics", "MinRenderScale", 0.55f,
+                new ConfigDescription("The lowest resolution scale dynamic resolution will use.", new AcceptableValueRange<float>(0.3f, 1.0f)));
+            EyeOcclusionCulling = Config.Bind("Graphics", "EyeOcclusionCulling", false,
+                "Occlusion culling for the headset cameras: skips drawing objects hidden behind walls. Can save a lot in a big building, but it was switched off originally " +
+                "because it once made walls disappear with the headset's off-centre view.");
             EyeMsaa = Config.Bind("Graphics", "Msaa", 4,
                 new ConfigDescription("Anti-aliasing (MSAA samples) for the headset view: 1 = off, 2, 4 or 8. Smooths jagged edges; costs GPU time. Applied when a game loads.",
                     new AcceptableValueList<int>(1, 2, 4, 8)));

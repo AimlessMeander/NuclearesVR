@@ -213,6 +213,7 @@ namespace NuclearesVR.Vr
             _system = null;
             yield return null;
             yield return null;
+            ReleaseRetiredTextures(all: true);
             if (_leftTex != null) { _leftTex.Release(); Destroy(_leftTex); _leftTex = null; }
             if (_rightTex != null) { _rightTex.Release(); Destroy(_rightTex); _rightTex = null; }
             _initTried = false;
@@ -242,15 +243,18 @@ namespace NuclearesVR.Vr
                 _system.GetRecommendedRenderTargetSize(ref w, ref h);
                 Plugin.Logger.LogInfo($"OpenVR initialized. Recommended per-eye render size: {w}x{h}");
 
-                var scale = Plugin.RenderScale.Value;
-                var eyeWidth = Mathf.Max(64, Mathf.RoundToInt(w * scale));
-                var eyeHeight = Mathf.Max(64, Mathf.RoundToInt(h * scale));
-                var msaa = Plugin.EyeMsaa.Value;
-                _leftTex = new RenderTexture(eyeWidth, eyeHeight, 24, RenderTextureFormat.Default) { antiAliasing = msaa };
-                _rightTex = new RenderTexture(eyeWidth, eyeHeight, 24, RenderTextureFormat.Default) { antiAliasing = msaa };
-                Plugin.Logger.LogInfo($"Eye textures {eyeWidth}x{eyeHeight} (render scale {scale:F2}), MSAA {msaa}x.");
-                _leftTex.Create();
-                _rightTex.Create();
+                _recommendedWidth = (int)w;
+                _recommendedHeight = (int)h;
+                var displayError = ETrackedPropertyError.TrackedProp_Success;
+                var hz = _system.GetFloatTrackedDeviceProperty(OpenVR.k_unTrackedDeviceIndex_Hmd, ETrackedDeviceProperty.Prop_DisplayFrequency_Float, ref displayError);
+                _headsetHz = hz > 20f ? hz : 90f;
+                _currentScale = Plugin.RenderScale.Value;
+                _currentMsaa = Plugin.EyeMsaa.Value;
+                _dynWindowStart = 0f;
+                _leftTex = MakeEyeTexture(_currentScale, _currentMsaa);
+                _rightTex = MakeEyeTexture(_currentScale, _currentMsaa);
+                Plugin.Logger.LogInfo($"Eye textures {_leftTex.width}x{_leftTex.height} (render scale {_currentScale:F2}), MSAA {_currentMsaa}x, headset {_headsetHz:F0} Hz, " +
+                                      $"dynamic resolution {(Plugin.DynamicResolution.Value ? "on" : "off")}.");
                 Plugin.Logger.LogInfo($"Eye render textures created: left.IsCreated={_leftTex.IsCreated()}, right.IsCreated={_rightTex.IsCreated()}");
 
                 if (SystemInfo.graphicsDeviceType != UnityEngine.Rendering.GraphicsDeviceType.Direct3D11)
@@ -543,6 +547,7 @@ namespace NuclearesVR.Vr
         private void DestroyEyeCameras()
         {
             RestoreMainMask();
+            _eyeNear = _eyeFar = -1f;
             if (_leftEyeCamera != null) Destroy(_leftEyeCamera.gameObject);
             if (_rightEyeCamera != null) Destroy(_rightEyeCamera.gameObject);
             _effectPairs.Clear();
@@ -716,19 +721,53 @@ namespace NuclearesVR.Vr
             {
                 return;
             }
+            SyncEyeClipPlanes();
             UpdateLiquidLayers();
+            UpdateGameMask();
             SyncOneEyeCamera(_leftEyeCamera);
             SyncOneEyeCamera(_rightEyeCamera);
-            ApplyLiquidMask();
+            ApplyMainMask();
+        }
+
+        private float _eyeNear = -1f, _eyeFar = -1f;
+
+        /// <summary>
+        /// The game changes its camera's draw distance as the player moves between areas (a short one
+        /// indoors keeps rendering cheap). The eye cameras' projection is built by hand, so it has to be
+        /// rebuilt when that changes - it used to be fixed at whatever the distance was when the eye
+        /// cameras were created (3000 m), so they drew far more of the world than the game intends.
+        /// Setting near/far discards a custom projection, hence the matrix is assigned afterwards.
+        /// </summary>
+        private void SyncEyeClipPlanes()
+        {
+            var near = _mainCamera.nearClipPlane;
+            var far = _benchFar > 0f ? _benchFar : _mainCamera.farClipPlane;
+            if (Mathf.Approximately(near, _eyeNear) && Mathf.Approximately(far, _eyeFar))
+            {
+                return;
+            }
+            Plugin.Logger.LogInfo($"Eye cameras' clip planes follow the game camera: near {near:F2}, far {far:F0} (was {_eyeNear:F2}/{_eyeFar:F0}).");
+            _eyeNear = near;
+            _eyeFar = far;
+            ApplyEyeProjection(_leftEyeCamera, EVREye.Eye_Left);
+            ApplyEyeProjection(_rightEyeCamera, EVREye.Eye_Right);
+        }
+
+        private void ApplyEyeProjection(Camera camera, EVREye eye)
+        {
+            camera.nearClipPlane = _eyeNear;
+            camera.farClipPlane = _eyeFar;
+            camera.projectionMatrix = _system.GetProjectionMatrix(eye, _eyeNear, _eyeFar).ToMatrix4x4();
         }
 
         private void SyncOneEyeCamera(Camera eye)
         {
             eye.clearFlags = _mainCamera.clearFlags;
             eye.backgroundColor = _mainCamera.backgroundColor;
-            eye.cullingMask = _mainCamera.cullingMask | (LiquidVisibleInEyes ? _liquidLayerMask : 0);
+            eye.cullingMask = (_gameMask | (LiquidVisibleInEyes ? _liquidLayerMask : 0)) & ~_benchEyeMaskRemove;
             eye.renderingPath = ForwardOnEyes ? RenderingPath.Forward : _mainCamera.renderingPath;
             eye.allowMSAA = true; // the main camera may have it off (Deferred cannot use it); the eyes are Forward
+            eye.useOcclusionCulling = Plugin.EyeOcclusionCulling.Value || _benchOcclusion;
 
             // The game's water simulation (ZibraAI) hooks every rendering camera except those of type VR,
             // and builds native GPU resources for each one. See VrManager.Liquid.cs.
@@ -797,6 +836,7 @@ namespace NuclearesVR.Vr
                 UpdateVrInput();
                 ApplyVSyncPolicy();
                 LogPerformance();
+                UpdateDynamicResolution();
 
                 var playerLook = PlayerLook.Instancia;
                 if (playerLook == null)

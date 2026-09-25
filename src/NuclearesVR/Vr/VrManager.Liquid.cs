@@ -23,8 +23,6 @@ namespace NuclearesVR.Vr
         private bool _searchedForLiquidType;
         private int _liquidLayerMask;
         private float _nextLiquidScan;
-        private bool _mainMaskStripped;
-        private int _strippedBits;
 
         // Layers that must never be hidden from the main camera (Default, UI): if the simulation were
         // on one of these, hiding it would blank the monitor view and the menus.
@@ -88,7 +86,7 @@ namespace NuclearesVR.Vr
         private bool LiquidStripSafe => (_liquidLayerMask & NeverStripLayers) == 0;
 
         /// <summary>The eye cameras are ordinary cameras (the simulation draws for them) unless the setting is off or stripping is not safe.</summary>
-        private bool LiquidVisibleInEyes => Plugin.LiquidInVr.Value && LiquidStripSafe;
+        private bool LiquidVisibleInEyes => Plugin.LiquidInVr.Value && LiquidStripSafe && !_benchNoLiquid;
 
         private void UpdateLiquidLayers()
         {
@@ -113,7 +111,7 @@ namespace NuclearesVR.Vr
                 {
                     Plugin.Logger.LogInfo("Water simulation type not found - nothing to work around.");
                 }
-                else
+                else if (Plugin.FixLiquidRays.Value)
                 {
                     PatchLiquidEyeRays(_liquidType);
                 }
@@ -137,28 +135,6 @@ namespace NuclearesVR.Vr
                 Plugin.Logger.LogInfo($"Water simulation objects are on layer mask {mask} " +
                                       (LiquidStripSafe ? "(hidden from the game's main camera while VR runs)." : "(Default/UI layer - cannot be hidden safely; headset cameras will skip the simulation instead)."));
             }
-        }
-
-        /// <summary>Called every frame after the eye cameras have copied the main camera's culling mask.</summary>
-        private void ApplyLiquidMask()
-        {
-            if (!LiquidVisibleInEyes || _liquidLayerMask == 0 || _mainCamera == null)
-            {
-                RestoreMainMask();
-                return;
-            }
-            _mainCamera.cullingMask &= ~_liquidLayerMask;
-            _mainMaskStripped = true;
-            _strippedBits = _liquidLayerMask;
-        }
-
-        private void RestoreMainMask()
-        {
-            if (_mainMaskStripped && _mainCamera != null)
-            {
-                _mainCamera.cullingMask |= _strippedBits;
-            }
-            _mainMaskStripped = false;
         }
     }
 }
