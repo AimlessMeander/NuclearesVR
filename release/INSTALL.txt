@@ -67,6 +67,16 @@ SETTINGS
    Msaa ................. Edge smoothing: 1 (off), 2, 4 (default) or 8. Higher looks smoother, runs slower.
    RenderScale .......... Picture sharpness: 1.0 (default). Try 1.2 - 1.5 for a sharper picture if
                           your graphics card can take it.
+   ShadowDistance ....... How far shadows are drawn in VR (default 60 metres; the game uses 200).
+   FarSmallObjectDistance  Small objects farther than this (default 100 m) are not drawn in the headset.
+                          This is what keeps the frame rate up when you look across the plant.
+                          If distant machinery seems to be missing, raise it (or set 0 to draw everything).
+   EyeDefaultLayerDistance How far most scenery is drawn in the headset (default 150 m).
+   EyeOcclusionCulling .. Skips objects hidden behind walls (default on). Turn off if walls flicker.
+   MonitorShowsHeadset .. The game window shows what the headset sees (default on).
+   LiquidSimulationInVr . Draw the water simulation in the headset (default on). If the game crashes
+                          often, set this to false.
+   DisableVsyncInVr ..... Turns the game's VSync off while VR runs (default on).
    TurnSpeed ............ How fast the right stick turns you.
    WalkTowardsHead ...... true: walk where you look. false: walk where your body faces.
    InstantActivation .... true: clicks skip the hand animation, like holding Shift.

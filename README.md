@@ -59,6 +59,8 @@ BepInEx 5.4.23.5 is installed in the game folder. Logs: `<game>/BepInEx/LogOutpu
 | Y | Experiment: 3D text ignores depth test (had no effect: the lit text shader lacks that property) |
 | Z | Cycle text draw-order experiments (state 2 is what the automatic fix does) |
 | X | Dump nearby 3D text (visibility, frustum, material) |
+| B | Benchmark: applies candidate performance settings one by one and logs SteamVR GPU time for each ([bench]) |
+| V | View probe: groups what is drawn in the current view (by type, shader, distance band, size), hides each group in turn and logs the GPU time ([probe]) |
 
 ## How it works, and things learned the hard way
 
@@ -108,6 +110,37 @@ only) is the gentle version that became the fix. Ctrl+Shift+X dumps nearby 3D te
 frustum, material). Earlier experiments that changed nothing (emission, depth precision, near/far,
 unlit text, glass, text depth test) were all sound tests of the wrong things; the depth-test one never
 applied because the lit text shader has no `unity_GUIZTestMode` property.
+
+## Performance: what was found and what the mod does
+
+Tools: the `[perf]` log line (every 5 s: game fps, SteamVR GPU ms, reprojection) and the B and V hotkeys.
+Measure with SteamVR's GPU time (`Compositor_FrameTiming.m_flTotalRenderGpuMs`), not fps: SteamVR's motion
+smoothing snaps a frame that is a little over budget to exactly half rate (45 at 90 Hz).
+
+- **VSync** (the game's option) made the game wait for the monitor as well as the headset (stuck at 30).
+  Turned off while VR runs, restored afterwards.
+- **The cost is almost entirely the two eye views** (about 1.5 ms per eye in a light spot, 10 ms in a heavy
+  one; everything else in the game is about 1.5 ms). It was independent of resolution, MSAA, water,
+  volumetric lights and pixel lights: it is vertex/draw-call bound, so lower resolution only made it blurry.
+  Dynamic resolution was built and is off by default for that reason.
+- **The game's own camera** rendered the whole scene again for the monitor. It now draws nothing in VR
+  (every layer's culling distance set to 2 cm, plus its heavy effects switched off), and the game window shows
+  the left eye instead (a command buffer on that camera, before the UI overlay). Do NOT empty its culling mask:
+  Unity also uses that mask for OnMouse events and UI raycasts (it made nothing clickable).
+- **Eye cameras follow the game camera's clip planes** (the game changes the far plane per area every 2 s; the
+  hand-built projection was stuck at 3000 m). Projection is rebuilt when they change.
+- **Occlusion culling on the eyes** (on): saved roughly half the cost of a busy view.
+- **Default-layer draw distance** (150 m): almost everything is on that layer; other layers keep the far plane.
+- **Shadow distance 60 m** in VR (game default 200): each eye re-draws all geometry in range into its shadow map.
+- **Far small objects hidden** (under 12 m across, nearest point over 100 m): the worst views showed about 3,000
+  such objects over 100 m away costing half the frame. Cached bounds, re-checked in slices, `forceRenderingOff`.
+- **Water reflection** (`NVWaterShaders.OnWillRenderObject`) renders an extra mirrored scene pass per camera
+  that sees the water: the right eye reuses the left eye's, refreshed every 2nd frame.
+- **ZibraAI liquid simulation**: hooks every camera except `CameraType.VR` and keeps ONE set of shared textures
+  resized per camera; the window and the eyes have different sizes, so the textures were recreated every frame
+  (likely cause of random NVIDIA driver crashes). The liquid's layer is removed from the game camera's mask so
+  only the two same-size eye cameras use it (`LiquidSimulationInVr`; false marks the eyes as VR cameras so it
+  skips them). Its eye-ray correction experiment (`FixLiquidRays`) made the water worse and is off.
 
 ## Motion controllers: how it works
 
