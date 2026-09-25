@@ -41,6 +41,8 @@ namespace NuclearesVR
         internal static ConfigEntry<bool> EyeOcclusionCulling;
         internal static ConfigEntry<float> EyeDefaultLayerDistance;
         internal static ConfigEntry<float> VrShadowDistance;
+        internal static ConfigEntry<float> HeavyMeshDistance;
+        internal static ConfigEntry<int> HeavyMeshVertices;
         internal static ConfigEntry<bool> MonitorShowsHeadset;
         internal static ConfigEntry<bool> ShareWaterReflection;
         internal static ConfigEntry<int> WaterReflectionEveryNthFrame;
@@ -102,6 +104,13 @@ namespace NuclearesVR
                 new ConfigDescription("How far away (metres) shadows are drawn while VR runs; the game's own setting is 200. Every eye re-draws all the geometry within this distance into its shadow map, " +
                                       "and the game's merged plant-wide meshes make that very expensive. Shadows near you are unchanged. 0 = keep the game's own setting.",
                     new AcceptableValueRange<float>(0f, 300f)));
+            HeavyMeshDistance = Config.Bind("Graphics", "HeavyMeshDistance", 80f,
+                new ConfigDescription("Very detailed models (see HeavyMeshVertices) that are entirely farther away than this many metres are not drawn in the headset. " +
+                                      "The game draws them with no simpler versions, and they are what makes a few views (for example looking out over the reactor pool) slow. " +
+                                      "Uses the nearest point of each model, so nothing you are standing next to disappears. 0 = draw everything.",
+                    new AcceptableValueRange<float>(0f, 400f)));
+            HeavyMeshVertices = Config.Bind("Graphics", "HeavyMeshVertices", 30000,
+                new ConfigDescription("What counts as a very detailed model for HeavyMeshDistance: at least this many vertices.", new AcceptableValueRange<int>(1000, 1000000)));
             MonitorShowsHeadset = Config.Bind("Graphics", "MonitorShowsHeadset", true,
                 "The game window shows the headset's view (left eye, cropped to the window) while VR runs. Costs almost nothing. false = a black window (only used with LightweightMonitorView on).");
             ShareWaterReflection = Config.Bind("Graphics", "ShareWaterReflection", true,
