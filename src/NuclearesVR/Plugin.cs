@@ -63,9 +63,9 @@ namespace NuclearesVR
                 "Controllers point and click in the game. Turn off to only draw the lasers.");
             InstantActivation = Config.Bind("Controllers", "InstantActivation", true,
                 "Clicks skip the hand animation, like holding Shift with the mouse.");
-            TurnSpeed = Config.Bind("Controllers", "TurnSpeed", 6f,
+            TurnSpeed = Config.Bind("Controllers", "TurnSpeed", 4f,
                 "How fast the right stick turns you (higher is faster). Uses the game's mouse look, so its mouse sensitivity setting also applies.");
-            DragPixelsPerMeter = Config.Bind("Controllers", "DragPixelsPerMeter", 3000f,
+            DragPixelsPerMeter = Config.Bind("Controllers", "DragPixelsPerMeter", 4000f,
                 "Turning dials and moving sliders: how many 'mouse pixels' one metre of hand movement counts as (higher = a shorter hand movement turns a dial further).");
             WalkTowardsHead = Config.Bind("Controllers", "WalkTowardsHead", true,
                 "Pushing the left stick moves you the way your head faces (the body turns to face where you look while you move). Off = the way the body faces.");
