@@ -20,6 +20,8 @@ namespace NuclearesVR.Vr
         private static readonly System.Reflection.FieldInfo PanelInfoField = AccessTools.Field(typeof(Interface), "PanelIEP");
 
         private const float InfoPanelWidth = 0.9f;
+        private const float TutorialPanelWidth = 0.5f;
+        private const float TutorialPanelTop = -0.25f;
         private static readonly Vector3 InfoPanelPosition = new Vector3(0f, -0.33f, 1.1f);
 
         private void UpdateInfoPanel()
@@ -47,7 +49,7 @@ namespace NuclearesVR.Vr
             {
                 return false;
             }
-            if (!FindInfoRect(out var rect, out var canvas))
+            if (!FindInfoRect(out var rect, out var canvas, out var isTutorial))
             {
                 return false;
             }
@@ -73,7 +75,13 @@ namespace NuclearesVR.Vr
             _infoMaterial.mainTextureOffset = new Vector2(x0, 1f - y0);
 
             var aspect = ((x1 - x0) * Screen.width) / ((y1 - y0) * Screen.height);
-            _infoQuad.transform.localScale = new Vector3(InfoPanelWidth, InfoPanelWidth / aspect, 1f);
+            // The tutorial box is smaller and hangs from a line below eye level, so you can see the
+            // room around it; the gauge box keeps its centre position.
+            var width = isTutorial ? TutorialPanelWidth : InfoPanelWidth;
+            var height = width / aspect;
+            _infoQuad.transform.localScale = new Vector3(width, height, 1f);
+            var centreY = isTutorial ? TutorialPanelTop - height * 0.5f : InfoPanelPosition.y;
+            _infoQuad.transform.localPosition = new Vector3(InfoPanelPosition.x, centreY, InfoPanelPosition.z);
             return true;
         }
 
@@ -84,8 +92,9 @@ namespace NuclearesVR.Vr
         /// The on-screen box to show in the headset: the component information box if it is open,
         /// otherwise the tutorial's instruction box.
         /// </summary>
-        private static bool FindInfoRect(out RectTransform rect, out Canvas canvas)
+        private static bool FindInfoRect(out RectTransform rect, out Canvas canvas, out bool isTutorial)
         {
+            isTutorial = false;
             rect = null;
             canvas = null;
             var group = PanelInfoField.GetValue(Interface.Instancia) as CanvasGroup;
@@ -100,6 +109,7 @@ namespace NuclearesVR.Vr
                 TutorialContainerField != null &&
                 TutorialContainerField.GetValue(Interface.CAvisos.Tutorial) is GameObject container)
             {
+                isTutorial = true;
                 rect = container.transform as RectTransform;
                 canvas = container.GetComponentInParent<Canvas>();
                 return rect != null && canvas != null;

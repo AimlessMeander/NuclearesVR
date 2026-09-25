@@ -581,7 +581,7 @@ namespace NuclearesVR.Vr
             _rightEyeCamera = null;
         }
 
-        private const float MirrorScreenDistance = 2f;
+        private const float MirrorScreenDistance = 1.5f;
         private const float MirrorScreenHeight = 1.24f;
 
         /// <summary>
