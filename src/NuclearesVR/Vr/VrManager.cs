@@ -284,8 +284,12 @@ namespace NuclearesVR.Vr
 
         private bool _loggedFirstUpdate;
 
+        // Where the time goes in a frame, for the [stall] log line.
+        private double _tPrevSubmitEnd, _tUpdate, _tLateStart, _tEof;
+
         private void Update()
         {
+            _tUpdate = Time.realtimeSinceStartupAsDouble;
             if (!_loggedFirstUpdate)
             {
                 _loggedFirstUpdate = true;
@@ -861,6 +865,7 @@ namespace NuclearesVR.Vr
 
         private void LateUpdate()
         {
+            _tLateStart = Time.realtimeSinceStartupAsDouble;
             if (!_active || _mainCamera == null)
             {
                 return;
@@ -988,6 +993,7 @@ namespace NuclearesVR.Vr
             while (true)
             {
                 yield return new WaitForEndOfFrame();
+                _tEof = Time.realtimeSinceStartupAsDouble;
 
                 ApplyPointerPose();
 
@@ -1031,6 +1037,13 @@ namespace NuclearesVR.Vr
 
                     var leftErr = OpenVR.Compositor.Submit(EVREye.Eye_Left, ref leftTexT, ref bounds, EVRSubmitFlags.Submit_Default);
                     var rightErr = OpenVR.Compositor.Submit(EVREye.Eye_Right, ref rightTexT, ref bounds, EVRSubmitFlags.Submit_Default);
+                    var submitEnd = Time.realtimeSinceStartupAsDouble;
+                    if (_tPrevSubmitEnd > 0 && submitEnd - _tPrevSubmitEnd > 0.25)
+                    {
+                        LogThrottled("slow-segments", $"[stall] frame {Time.frameCount} took {(submitEnd - _tPrevSubmitEnd) * 1000:F0} ms: before Update {(_tUpdate - _tPrevSubmitEnd) * 1000:F0}, " +
+                                     $"Update scripts {(_tLateStart - _tUpdate) * 1000:F0}, LateUpdate+rendering {(_tEof - _tLateStart) * 1000:F0}, capture+Submit {(submitEnd - _tEof) * 1000:F0} ms.");
+                    }
+                    _tPrevSubmitEnd = submitEnd;
                     if (leftErr != EVRCompositorError.None || rightErr != EVRCompositorError.None)
                     {
                         LogThrottled("submit-error", $"Compositor.Submit returned an error: left={leftErr}, right={rightErr}");
