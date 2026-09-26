@@ -29,6 +29,7 @@ namespace NuclearesVR
         internal static new ManualLogSource Logger;
         internal static ConfigEntry<float> PointerPitchDegrees;
         internal static ConfigEntry<float> RecenterHoldSeconds;
+        internal static ConfigEntry<float> MenuScreenHeight, MenuScreenDown;
         internal static ConfigEntry<bool> PointingEnabled;
         internal static ConfigEntry<bool> InstantActivation;
         internal static ConfigEntry<float> TurnSpeed;
@@ -77,6 +78,12 @@ namespace NuclearesVR
                 "Always = always start VR when a game loads (launches SteamVR if needed). Never = never start VR.");
             GripIsRightClick = Config.Bind("Controllers", "GripIsRightClick", true,
                 "Holding a grip is the right mouse button: hold it on a gauge or component for its detail box, open switch guards, and with the stick forward/back to zoom.");
+            MenuScreenHeight = Config.Bind("Controllers", "MenuScreenHeight", 0.8f,
+                new ConfigDescription("Height in metres of the floating screen used for the menus, dialogs and inventory, 1.5 m in front of you. Smaller if its corners are cut off.",
+                    new AcceptableValueRange<float>(0.3f, 2.0f)));
+            MenuScreenDown = Config.Bind("Controllers", "MenuScreenDown", 0.12f,
+                new ConfigDescription("How far below eye level, in metres, the centre of that floating screen sits. Higher = lower screen.",
+                    new AcceptableValueRange<float>(-0.5f, 0.8f)));
             LiquidInVr = Config.Bind("Graphics", "LiquidSimulationInVr", true,
                 "The game's real-time water simulation (ZibraAI) is active in the control room, reactor and service areas. It shares one set of GPU textures between all " +
                 "cameras, and the game window and the two headset cameras have different sizes, which is suspected of causing random graphics-driver crashes. " +

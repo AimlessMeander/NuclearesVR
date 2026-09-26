@@ -91,6 +91,8 @@ SETTINGS
    LiquidSimulationInVr . Draw the water simulation in the headset (default on). If the game crashes
                           often, set this to false.
    DisableVsyncInVr ..... Turns the game's VSync off while VR runs (default on).
+   MenuScreenHeight ..... Size of the floating screen for menus, dialogs and the inventory (metres tall, 0.8).
+   MenuScreenDown ....... How far below eye level that screen sits (metres, 0.12).
    TurnSpeed ............ How fast the right stick turns you.
    WalkTowardsHead ...... true: walk where you look. false: walk where your body faces.
    InstantActivation .... true: clicks skip the hand animation, like holding Shift.

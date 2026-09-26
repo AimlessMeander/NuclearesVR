@@ -582,8 +582,8 @@ namespace NuclearesVR.Vr
         }
 
         private const float MirrorScreenDistance = 1.5f;
-        private const float MirrorScreenOffsetY = -0.06f; // a little below eye level
-        private const float MirrorScreenHeight = 1.0f;
+        private static float MirrorScreenOffsetY => -Plugin.MenuScreenDown.Value;
+        private static float MirrorScreenHeight => Plugin.MenuScreenHeight.Value;
 
         /// <summary>
         /// Nucleares' menus (main menu, ESC pause menu) are built on a UI
