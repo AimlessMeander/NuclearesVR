@@ -77,7 +77,7 @@ namespace NuclearesVR.Vr
         /// <summary>Start of the frame, before the game's scripts run.</summary>
         private void AlignBodyToHead()
         {
-            if (!_movingLastFrame || !_haveHeadYaw || !Plugin.WalkTowardsHead.Value || !_inputReady)
+            if (!_movingLastFrame || !_haveHeadYaw || !Plugin.WalkTowardsHead.Value || !_inputReady || InCrane)
             {
                 return;
             }
