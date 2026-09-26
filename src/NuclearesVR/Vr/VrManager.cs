@@ -935,12 +935,23 @@ namespace NuclearesVR.Vr
                 // Update (see the comment on _savedBaseRotation) - remember it
                 // exactly, then add our head offset.
                 _savedBaseRotation = _mainCamera.transform.localRotation;
-                _mainCamera.transform.localRotation = _savedBaseRotation * deltaRot;
-                _rotationApplied = true;
+                var craneCamera = CraneOutsideCamera();
+                if (craneCamera != null)
+                {
+                    // An outside crane view: sit at that camera, turning with the head. The restore step
+                    // next frame puts the game's own camera pose back (saved above / _baseLocalPosition).
+                    _mainCamera.transform.SetPositionAndRotation(craneCamera.position, craneCamera.rotation * deltaRot);
+                    _rotationApplied = true;
+                }
+                else
+                {
+                    _mainCamera.transform.localRotation = _savedBaseRotation * deltaRot;
+                    _rotationApplied = true;
 
-                // Position: the game never touches localPosition per-frame, so we
-                // track our own cached base instead of accumulating.
-                _mainCamera.transform.localPosition = _baseLocalPosition + deltaPos;
+                    // Position: the game never touches localPosition per-frame, so we
+                    // track our own cached base instead of accumulating.
+                    _mainCamera.transform.localPosition = _baseLocalPosition + deltaPos;
+                }
 
                 RememberHeadYaw();
                 PositionHands();

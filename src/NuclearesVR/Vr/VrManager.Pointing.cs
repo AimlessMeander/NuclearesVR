@@ -305,7 +305,7 @@ namespace NuclearesVR.Vr
             HarmonyLib.AccessTools.Field(typeof(controlCrane), "_jugador");
 
         /// <summary>True while the local player is sitting in the crane's control seat.</summary>
-        private static bool InCrane
+        internal static bool InCrane
         {
             get
             {
