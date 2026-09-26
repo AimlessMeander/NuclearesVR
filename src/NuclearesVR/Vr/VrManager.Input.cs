@@ -267,11 +267,13 @@ namespace NuclearesVR.Vr
             {
                 return;
             }
-            if (laser.activeSelf != hand.PoseValid)
+            // Not needed in the crane seat (unless a menu is up and has to be pointed at).
+            var show = hand.PoseValid && (!InCrane || _mirrorVisible);
+            if (laser.activeSelf != show)
             {
-                laser.SetActive(hand.PoseValid);
+                laser.SetActive(show);
             }
-            if (!hand.PoseValid)
+            if (!show)
             {
                 return;
             }
