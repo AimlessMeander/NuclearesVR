@@ -25,6 +25,11 @@ namespace NuclearesVR.Vr
                     Plugin.Logger.LogWarning("Security camera patch: Camera.Render not found.");
                     return;
                 }
+                var refresh = AccessTools.Method(typeof(controlVideoVigilancia), "GetRefresco");
+                if (refresh != null)
+                {
+                    harmony.Patch(refresh, postfix: new HarmonyMethod(typeof(VrSecurityPatches), nameof(RefreshPostfix)));
+                }
                 var plane = AccessTools.Method(typeof(ControlReservorioDeAgua), "SetPlanoDeAguaVisible");
                 if (plane != null)
                 {
@@ -48,6 +53,15 @@ namespace NuclearesVR.Vr
 
         private static int _renderLogCount, _finishedCount;
         private static readonly HashSet<string> Finished = new HashSet<string>();
+
+        /// <summary>How long the game waits between drawing the CCTV cameras: never less than the setting while VR runs.</summary>
+        private static void RefreshPostfix(ref float __result)
+        {
+            if (VrManager.VrRunning)
+            {
+                __result = Mathf.Max(__result, Plugin.SecurityCameraRefreshSeconds.Value);
+            }
+        }
 
         private static bool _cheapApplied;
         private static float _savedShadowDistance, _savedLodBias;
