@@ -37,8 +37,8 @@ Known issues:
 - If your head or hands end up in a strange position or orientation (usually after using a keypad or a
   ladder), press B to open the tablet and press it again to close it. Your view will recenter.
 - **CCTV cameras** are switched off in VR (the game crashed the graphics driver): see the last section.
-- The reactor pool's water can look different in each eye, and is drawn over the lasers and menu (the water
-  simulation is a separate pass that ignores objects the mod adds).
+- The water is the game's flat water surface in VR (the fluid simulation is switched off, see below): it shows the
+  right level but has no waves or splashes.
 - The inventory is a flat picture, not 3D.
 
 ## Build and install
@@ -138,11 +138,13 @@ smoothing snaps a frame that is a little over budget to exactly half rate (45 at
   such objects over 100 m away costing half the frame. Cached bounds, re-checked in slices, `forceRenderingOff`.
 - **Water reflection** (`NVWaterShaders.OnWillRenderObject`) renders an extra mirrored scene pass per camera
   that sees the water: the right eye reuses the left eye's, refreshed every 2nd frame.
-- **ZibraAI liquid simulation**: hooks every camera except `CameraType.VR` and keeps ONE set of shared textures
-  resized per camera; the window and the eyes have different sizes, so the textures were recreated every frame
-  (likely cause of random NVIDIA driver crashes). The liquid's layer is removed from the game camera's mask so
-  only the two same-size eye cameras use it (`LiquidSimulationInVr`; false marks the eyes as VR cameras so it
-  skips them). An eye-ray correction experiment made the water worse and was removed (git history). Known issue: the water can look different in each eye and is drawn over the lasers and menu.
+- **Water simulation (ZibraAI):** the game's fluid simulation crashed the game at random in VR (a null read inside
+  `ZibraLiquidNative_Win.dll`, which keeps ONE set of GPU textures shared by all cameras; the same crash location
+  turned up in the CCTV crashes), and it looked different in each eye and was drawn over the lasers and menu. While VR
+  runs the mod switches the game to its own flat water surface, as if the "advanced water simulation" option were
+  off (`CConfiguracion.COpciones.AguaSimulada` and its private `ActivarAguaSimulada`, see `VrManager.Water.cs`); the
+  player's setting is restored when VR stops. The eye cameras are also marked `CameraType.VR`, which the simulation
+  skips.
 
 ## Motion controllers: how it works
 
@@ -195,7 +197,7 @@ src/NuclearesVR/            plugin source (partial class VrManager split by conc
   Vr/VrManager*.cs           stereo rendering, tracking, virtual screen, pointing and input, crane, inventory,
                              performance (culling, shadows, far objects), water and monitor workarounds, diagnostics
   Vr/VrKeys.cs               Harmony patches that feed controller input into the game's Input reads
-  Vr/VrWaterPatches.cs       shared water reflection; Vr/VrSecurityPatches.cs blocks the CCTV cameras
+  Vr/VrWaterPatches.cs       shared water reflection; VrManager.Water.cs switches to flat water; Vr/VrSecurityPatches.cs blocks the CCTV cameras
 docs/CCTV-INVESTIGATION.md   everything tried on the CCTV crash
 scripts/setup-dependencies.ps1  scripts/make-release.ps1 (builds dist/NuclearesVR-<version>.zip)
 reference/  lib/  downloads/ gitignored (game code, game/BepInEx DLLs, downloaded archives)

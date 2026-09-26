@@ -74,7 +74,7 @@ namespace NuclearesVR.Vr
         private void ApplyMainMask()
         {
             var skip = Plugin.MonitorView.Value != MonitorViewMode.Game && !_mirrorVisible;
-            var mask = _gameMask & ~(LiquidVisibleInEyes ? _liquidLayerMask : 0);
+            var mask = _gameMask;
             _mainCamera.cullingMask = mask;
             _ourMainMask = mask;
             SetMainCullingSkipped(skip);

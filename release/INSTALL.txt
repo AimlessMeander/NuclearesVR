@@ -89,8 +89,6 @@ SETTINGS
                           (cheapest), or Game (the game's normal camera, slower).
    SecurityCameras ...... The in-game CCTV cameras are switched off in VR (default false): the CCTV screens
                           stay black. Switching them on used to freeze or crash the game in VR.
-   LiquidSimulationInVr . Draw the water simulation in the headset (default on). If the game crashes
-                          often, set this to false.
    DisableVsyncInVr ..... Turns the game's VSync off while VR runs (default on).
    MenuScreenHeight ..... Size of the floating screen for menus, dialogs and the inventory (metres tall, 0.8).
    MenuScreenDown ....... How far below eye level that screen sits (metres, 0.3).
@@ -111,8 +109,9 @@ KNOWN LIMITS
    or a ladder), press B to open the tablet and press it again to close it. Your view will recenter.
  * The in-game CCTV screens stay black in VR (switching them on crashed the game).
  * The inventory, menus and dialogs show on a floating flat screen, not in 3D.
- * The reactor pool's water can look slightly different in each eye, and it is drawn over the laser
-   pointers and the menu screen when they are in front of it.
+ * The water is the game's flat water surface in VR (the water simulation is switched off, because it
+   crashed the game). You see the correct water level, but no waves or splashes. Your own graphics
+   setting for the water simulation is put back when VR stops.
 
 IF SOMETHING GOES WRONG
 -----------------------

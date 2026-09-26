@@ -90,3 +90,13 @@ Set `SecurityCameras = true` in the config to let the game draw the cameras in V
 removed would be re-added from git history: the `[cctv]` first-draw and view-content logging
 (`VrSecurityPatches.cs` at commit `14cb5cd`) are the most useful, plus the per-frame stall breakdown in
 `VrManager.cs` at commit `722311c`.
+
+## Update: the crash signature (2026-09-26)
+
+Reading the crash dumps (`%TEMP%\Aerilian\Nucleares\Crashes\Crash_*\crash.dmp`; exception record found with a small
+minidump parser) of that day's crashes, including the CCTV ones, showed two repeating signatures: an access
+violation (null read) at offset `0x3423c` in `ZibraLiquidNative_Win.dll` (the game's water simulation), and faults in
+the NVIDIA driver (`nvwgf2umx.dll`). The same Zibra offset also crashed the game with the CCTV blocked and nothing
+else unusual happening. So the CCTV crash may really have been this Zibra crash, with the CCTV cameras only a reliable
+way to trigger it. Since 0.1.1 the mod switches the game to its flat water while VR runs (`VrManager.Water.cs`).
+If the CCTV is ever retried, do it with the water simulation off first. Not yet tested.

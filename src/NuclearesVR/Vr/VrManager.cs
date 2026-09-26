@@ -196,6 +196,7 @@ namespace NuclearesVR.Vr
             StopFarSmallObjects();
             RestoreVSync();
             RestoreShadowDistance();
+            RestoreSimulatedWaterSetting();
             ReleaseControllerActions();
             DestroyEyeCameras();
             _mainCamera = null;
@@ -750,7 +751,7 @@ namespace NuclearesVR.Vr
             }
             SyncEyeClipPlanes();
             SyncEyeLayerDistances();
-            UpdateLiquidLayers();
+            UseFlatWater();
             UpdateGameMask();
             SyncOneEyeCamera(_leftEyeCamera);
             SyncOneEyeCamera(_rightEyeCamera);
@@ -813,19 +814,16 @@ namespace NuclearesVR.Vr
         {
             eye.clearFlags = _mainCamera.clearFlags;
             eye.backgroundColor = _mainCamera.backgroundColor;
-            eye.cullingMask = (_gameMask | (LiquidVisibleInEyes ? _liquidLayerMask : 0)) & ~_inventoryHiddenMask;
+            eye.cullingMask = _gameMask & ~_inventoryHiddenMask;
             eye.renderingPath = ForwardOnEyes ? RenderingPath.Forward : _mainCamera.renderingPath;
             eye.allowMSAA = true; // the main camera may have it off (Deferred cannot use it); the eyes are Forward
             eye.useOcclusionCulling = Plugin.EyeOcclusionCulling.Value || _benchOcclusion;
 
-            // The game's water simulation (ZibraAI) hooks every rendering camera except those of type VR,
-            // and builds native GPU resources for each one. See VrManager.Liquid.cs.
-            var wantedType = LiquidVisibleInEyes ? CameraType.Game : CameraType.VR;
-            if (eye.cameraType != wantedType)
+            // The game's water simulation (ZibraAI) hooks every rendering camera except those of type VR
+            // (it is switched off while VR runs anyway, see VrManager.Water.cs; this is a second safeguard).
+            if (eye.cameraType != CameraType.VR)
             {
-                eye.cameraType = wantedType;
-                Plugin.Logger.LogInfo($"Eye camera '{eye.name}' type set to {wantedType}" +
-                                      (wantedType == CameraType.VR ? " (the water simulation skips it)." : "."));
+                eye.cameraType = CameraType.VR;
             }
             SyncEffectsEnabled(eye);
             if (_mirrorLayer >= 0)

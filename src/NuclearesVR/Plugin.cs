@@ -37,7 +37,6 @@ namespace NuclearesVR
         internal static ConfigEntry<bool> WalkTowardsHead;
         internal static ConfigEntry<VrStartMode> StartMode;
         internal static ConfigEntry<bool> GripIsRightClick;
-        internal static ConfigEntry<bool> LiquidInVr;
         internal static ConfigEntry<bool> DisableVsyncInVr;
         internal static ConfigEntry<MonitorViewMode> MonitorView;
         internal static ConfigEntry<bool> SecurityCameras;
@@ -87,11 +86,6 @@ namespace NuclearesVR
             MenuScreenDistance = Config.Bind("Controllers", "MenuScreenDistance", 1.0f,
                 new ConfigDescription("How far in front of you, in metres, that floating screen is. Its picture stays the same apparent size if you change the height by the same proportion.",
                     new AcceptableValueRange<float>(0.5f, 4.0f)));
-            LiquidInVr = Config.Bind("Graphics", "LiquidSimulationInVr", true,
-                "The game's real-time water simulation (ZibraAI) is active in the control room, reactor and service areas. It shares one set of GPU textures between all " +
-                "cameras, and the game window and the two headset cameras have different sizes, which is suspected of causing random graphics-driver crashes. " +
-                "true = the water is drawn in the headset, and hidden from the game's own main camera (the monitor mirror) so that only the two same-size headset cameras use it. " +
-                "false = the headset cameras skip the simulation entirely (safest, but the water, e.g. in the core pool, is not visible in the headset).");
             DisableVsyncInVr = Config.Bind("Graphics", "DisableVsyncInVr", true,
                 "Turns the game's VSync off while VR runs (restored afterwards). The headset sets the frame rate; with VSync on, the game also waits for the monitor's refresh, " +
                 "which can leave the frame rate stuck at a fraction of the headset's (for example 30).");
