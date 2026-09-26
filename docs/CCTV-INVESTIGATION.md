@@ -98,5 +98,5 @@ minidump parser) of that day's crashes, including the CCTV ones, showed two repe
 violation (null read) at offset `0x3423c` in `ZibraLiquidNative_Win.dll` (the game's water simulation), and faults in
 the NVIDIA driver (`nvwgf2umx.dll`). The same Zibra offset also crashed the game with the CCTV blocked and nothing
 else unusual happening. So the CCTV crash may really have been this Zibra crash, with the CCTV cameras only a reliable
-way to trigger it. Since 0.1.1 the mod switches the game to its flat water while VR runs (`VrManager.Water.cs`).
+way to trigger it. The mod now switches the game to its flat water while VR runs (`VrManager.Water.cs`).
 If the CCTV is ever retried, do it with the water simulation off first. Not yet tested.
