@@ -13,6 +13,32 @@ namespace NuclearesVR.Vr
     /// </summary>
     internal partial class VrManager
     {
+        // While the inventory is open its 3D crates are a real object in the room, at about the distance of the
+        // virtual screen, and the flat screen slices through them. The flat picture (a capture of the game
+        // window) still needs them, so only the headset's own cameras stop drawing the inventory camera's layers.
+        private int _inventoryHiddenMask;
+
+        private void UpdateInventoryHiddenLayers()
+        {
+            var mask = 0;
+            try
+            {
+                if (Interface.IsMochilaVisile)
+                {
+                    var camera = controlCamaras.CamMochila;
+                    if (camera != null)
+                    {
+                        mask = camera.cullingMask & ~((1 << 0) | (1 << 5)); // never the Default or UI layers
+                    }
+                }
+            }
+            catch
+            {
+                mask = 0;
+            }
+            _inventoryHiddenMask = mask;
+        }
+
         private float _lastSpinPixelX;
         private bool _wasSpinning;
         private const float InventorySpinPerPixel = 1f;

@@ -812,7 +812,7 @@ namespace NuclearesVR.Vr
         {
             eye.clearFlags = _mainCamera.clearFlags;
             eye.backgroundColor = _mainCamera.backgroundColor;
-            eye.cullingMask = (_gameMask | (LiquidVisibleInEyes ? _liquidLayerMask : 0));
+            eye.cullingMask = (_gameMask | (LiquidVisibleInEyes ? _liquidLayerMask : 0)) & ~_inventoryHiddenMask;
             eye.renderingPath = ForwardOnEyes ? RenderingPath.Forward : _mainCamera.renderingPath;
             eye.allowMSAA = true; // the main camera may have it off (Deferred cannot use it); the eyes are Forward
             eye.useOcclusionCulling = Plugin.EyeOcclusionCulling.Value || _benchOcclusion;
@@ -867,6 +867,7 @@ namespace NuclearesVR.Vr
 
             try
             {
+                UpdateInventoryHiddenLayers();
                 SyncEyeCameraSettings();
 
                 // WaitGetPoses must run every frame we also Submit, no matter
