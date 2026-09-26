@@ -880,7 +880,15 @@ namespace NuclearesVR.Vr
                 // (2) while the tablet (or any other MirarActivo focus mode)
                 // was open it was skipped while Submit kept firing, giving
                 // AlreadySubmitted errors and SteamVR's "waiting" screen.
+                var waitWatch = System.Diagnostics.Stopwatch.StartNew();
                 OpenVR.Compositor.WaitGetPoses(_renderPoses, EmptyPoseArray);
+                waitWatch.Stop();
+                _waitGetPosesMsSum += waitWatch.Elapsed.TotalMilliseconds;
+                _waitGetPosesMsMax = System.Math.Max(_waitGetPosesMsMax, waitWatch.Elapsed.TotalMilliseconds);
+                if (Time.unscaledDeltaTime > 0.25f)
+                {
+                    LogThrottled("slow-frame", $"[stall] a frame took {Time.unscaledDeltaTime * 1000f:F0} ms; WaitGetPoses took {waitWatch.Elapsed.TotalMilliseconds:F0} ms of it (frame {Time.frameCount}).");
+                }
 
                 UpdateVrInput();
                 ApplyVSyncPolicy();
