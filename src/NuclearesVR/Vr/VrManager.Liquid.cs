@@ -106,7 +106,7 @@ namespace NuclearesVR.Vr
                 {
                     // The simulation ignores Reflection-type cameras before it does anything at all with
                     // them (it still notes every other camera's size even when its layer is masked out).
-                    if (camera != null && camera.cameraType != CameraType.Reflection)
+                    if (camera != null && Plugin.SecurityCameraReflectionType.Value && camera.cameraType != CameraType.Reflection)
                     {
                         _securityCameraTypes[camera] = camera.cameraType;
                         camera.cameraType = CameraType.Reflection;
