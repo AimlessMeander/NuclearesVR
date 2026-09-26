@@ -184,6 +184,7 @@ namespace NuclearesVR.Vr
             Plugin.Logger.LogInfo("Back at the start menu - shutting VR down.");
             _active = false;
             VrRunning = false;
+            StopWatchdog();
             RemoveMonitorMirror();
             _shuttingDown = true;
             StopAllCoroutines();
@@ -274,6 +275,7 @@ namespace NuclearesVR.Vr
                 StartCoroutine(SubmitLoop());
                 _noPlayerSince = -1f;
                 _active = true;
+                StartWatchdog();
                 VrRunning = true;
             }
             catch (Exception ex)
@@ -864,6 +866,8 @@ namespace NuclearesVR.Vr
                 return;
             }
 
+            System.Threading.Interlocked.Increment(ref _frameCounter);
+            Stage("LateUpdate: before WaitGetPoses");
             try
             {
                 UpdateInventoryHiddenLayers();
@@ -879,7 +883,9 @@ namespace NuclearesVR.Vr
                 // (2) while the tablet (or any other MirarActivo focus mode)
                 // was open it was skipped while Submit kept firing, giving
                 // AlreadySubmitted errors and SteamVR's "waiting" screen.
+                Stage("WaitGetPoses");
                 OpenVR.Compositor.WaitGetPoses(_renderPoses, EmptyPoseArray);
+                Stage("LateUpdate: after WaitGetPoses");
 
                 UpdateVrInput();
                 ApplyVSyncPolicy();
@@ -978,7 +984,9 @@ namespace NuclearesVR.Vr
             var bounds = new VRTextureBounds_t { uMin = 0, vMin = 1, uMax = 1, vMax = 0 };
             while (true)
             {
+                Stage("end of frame (mod done, waiting for the game to render)");
                 yield return new WaitForEndOfFrame();
+                Stage("SubmitLoop: start");
 
                 ApplyPointerPose();
 
@@ -987,6 +995,7 @@ namespace NuclearesVR.Vr
                     try
                     {
                         ResizeMirrorTextureIfNeeded();
+                        Stage("screen capture");
                         ScreenCapture.CaptureScreenshotIntoRenderTexture(_mirrorTex);
                     }
                     catch (Exception ex)
@@ -1020,6 +1029,7 @@ namespace NuclearesVR.Vr
                         eColorSpace = EColorSpace.Auto
                     };
 
+                    Stage("Submit");
                     var leftErr = OpenVR.Compositor.Submit(EVREye.Eye_Left, ref leftTexT, ref bounds, EVRSubmitFlags.Submit_Default);
                     var rightErr = OpenVR.Compositor.Submit(EVREye.Eye_Right, ref rightTexT, ref bounds, EVRSubmitFlags.Submit_Default);
                     if (leftErr != EVRCompositorError.None || rightErr != EVRCompositorError.None)
