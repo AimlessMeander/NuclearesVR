@@ -60,7 +60,8 @@ CONTROLS (Quest / Touch layout)
      A .................. Open / close grabber   B ...................... Laser sight
      Y .................. Next camera           X ...................... Leave the crane
 
-   Keyboard: End ........ Recenter the view (do this when you are sitting comfortably).
+   Both triggers held ... Recenter the view (hold them for 2 seconds while sitting comfortably and looking
+                          straight ahead). The End key on the keyboard also does it.
 
  Every button can be changed in SteamVR's own controller settings (Devices > Controller
  Settings > Nucleares > Edit binding), and which game key each button presses can be changed in the

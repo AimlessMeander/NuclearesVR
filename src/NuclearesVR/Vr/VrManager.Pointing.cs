@@ -288,6 +288,7 @@ namespace NuclearesVR.Vr
             AddMapped(LeftHand.Grip, Plugin.KeyLeftGrip.Value);
             AddMapped(RightHand.Grip, Plugin.KeyRightGrip.Value);
             MapStickClicks();
+            CheckRecenterHold();
             VrKeys.Apply(_wantedKeys);
 
             VrKeys.SetAim(allowed && hand.PoseValid, hand.WorldPos, hand.WorldRot,
@@ -372,6 +373,30 @@ namespace NuclearesVR.Vr
                 {
                     _wantedKeys.Add(_pulseKey);
                 }
+            }
+        }
+
+        // Holding both triggers for RecenterHoldSeconds recentres the view (once per hold).
+        private float _bothTriggersSince = -1f;
+        private bool _recentredThisHold;
+
+        private void CheckRecenterHold()
+        {
+            var seconds = Plugin.RecenterHoldSeconds.Value;
+            if (seconds <= 0f || !(LeftHand.Trigger && RightHand.Trigger))
+            {
+                _bothTriggersSince = -1f;
+                _recentredThisHold = false;
+                return;
+            }
+            if (_bothTriggersSince < 0f)
+            {
+                _bothTriggersSince = Time.unscaledTime;
+            }
+            else if (!_recentredThisHold && Time.unscaledTime - _bothTriggersSince >= seconds)
+            {
+                _recentredThisHold = true;
+                Recenter();
             }
         }
 

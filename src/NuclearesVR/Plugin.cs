@@ -28,6 +28,7 @@ namespace NuclearesVR
 
         internal static new ManualLogSource Logger;
         internal static ConfigEntry<float> PointerPitchDegrees;
+        internal static ConfigEntry<float> RecenterHoldSeconds;
         internal static ConfigEntry<bool> PointingEnabled;
         internal static ConfigEntry<bool> InstantActivation;
         internal static ConfigEntry<float> TurnSpeed;
@@ -58,6 +59,9 @@ namespace NuclearesVR
             Logger = base.Logger;
             PointerPitchDegrees = Config.Bind("Controllers", "PointerPitchDegrees", 0f,
                 "Tilts the pointer laser up (+) or down (-) relative to the controller's pointing pose, in degrees.");
+            RecenterHoldSeconds = Config.Bind("Controllers", "RecenterHoldSeconds", 2f,
+                new ConfigDescription("Hold both triggers for this many seconds to recentre the view (do it while sitting comfortably, looking straight ahead). 0 = off. The End key on the keyboard also recentres.",
+                    new AcceptableValueRange<float>(0f, 10f)));
             PointingEnabled = Config.Bind("Controllers", "PointingEnabled", true,
                 "Controllers point and click in the game. Turn off to only draw the lasers.");
             InstantActivation = Config.Bind("Controllers", "InstantActivation", true,

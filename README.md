@@ -49,7 +49,7 @@ BepInEx 5.4.23.5 is installed in the game folder. Logs: `<game>/BepInEx/LogOutpu
 
 | Key | What |
 |---|---|
-| End (no modifiers) | Recenter the headset |
+| End (no modifiers) | Recenter the headset (also: hold both triggers for 2 seconds) |
 | B | Benchmark: applies candidate performance settings one by one and logs SteamVR GPU time for each ([bench]) |
 | V | View probe: groups what is drawn in the current view (by type, shader, distance band, size), hides each group in turn and logs the GPU time ([probe]) |
 

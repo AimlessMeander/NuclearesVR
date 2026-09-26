@@ -582,8 +582,8 @@ namespace NuclearesVR.Vr
         }
 
         private const float MirrorScreenDistance = 1.5f;
-        private const float MirrorScreenOffsetY = -0.18f; // below eye level, so the top corners are not cut off
-        private const float MirrorScreenHeight = 1.24f;
+        private const float MirrorScreenOffsetY = -0.06f; // a little below eye level
+        private const float MirrorScreenHeight = 1.0f;
 
         /// <summary>
         /// Nucleares' menus (main menu, ESC pause menu) are built on a UI
