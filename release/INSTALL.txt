@@ -80,7 +80,8 @@ SETTINGS
                           If distant machinery seems to be missing, raise it (or set 0 to draw everything).
    EyeDefaultLayerDistance How far most scenery is drawn in the headset (default 150 m).
    EyeOcclusionCulling .. Skips objects hidden behind walls (default on). Turn off if walls flicker.
-   MonitorShowsHeadset .. The game window shows what the headset sees (default on).
+   MonitorView .......... What the monitor shows in VR: Headset (default, the headset's view), Black
+                          (cheapest), or Game (the game's normal camera, slower).
    LiquidSimulationInVr . Draw the water simulation in the headset (default on). If the game crashes
                           often, set this to false.
    DisableVsyncInVr ..... Turns the game's VSync off while VR runs (default on).

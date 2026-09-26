@@ -73,7 +73,7 @@ namespace NuclearesVR.Vr
         /// <summary>After the eye cameras have copied the game's mask: set what the game's own camera draws.</summary>
         private void ApplyMainMask()
         {
-            var skip = Plugin.LightweightMonitorView.Value && !_mirrorVisible;
+            var skip = Plugin.MonitorView.Value != MonitorViewMode.Game && !_mirrorVisible;
             var mask = _gameMask & ~(LiquidVisibleInEyes ? _liquidLayerMask : 0);
             _mainCamera.cullingMask = mask;
             _ourMainMask = mask;

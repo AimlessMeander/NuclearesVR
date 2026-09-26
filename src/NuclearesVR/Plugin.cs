@@ -7,6 +7,8 @@ using UnityEngine.SceneManagement;
 
 namespace NuclearesVR
 {
+    public enum MonitorViewMode { Headset, Black, Game }
+
     public enum VrStartMode
     {
         /// <summary>VR only if SteamVR is already running; otherwise play normally in 2D.</summary>
@@ -35,7 +37,7 @@ namespace NuclearesVR
         internal static ConfigEntry<bool> GripIsRightClick;
         internal static ConfigEntry<bool> LiquidInVr;
         internal static ConfigEntry<bool> DisableVsyncInVr;
-        internal static ConfigEntry<bool> LightweightMonitorView;
+        internal static ConfigEntry<MonitorViewMode> MonitorView;
         internal static ConfigEntry<bool> FixLiquidRays;
         internal static ConfigEntry<bool> DynamicResolution;
         internal static ConfigEntry<bool> EyeOcclusionCulling;
@@ -43,7 +45,6 @@ namespace NuclearesVR
         internal static ConfigEntry<float> VrShadowDistance;
         internal static ConfigEntry<float> FarSmallObjectDistance;
         internal static ConfigEntry<float> FarSmallObjectSize;
-        internal static ConfigEntry<bool> MonitorShowsHeadset;
         internal static ConfigEntry<bool> ShareWaterReflection;
         internal static ConfigEntry<int> WaterReflectionEveryNthFrame;
         internal static ConfigEntry<float> MinRenderScale;
@@ -82,9 +83,11 @@ namespace NuclearesVR
             DisableVsyncInVr = Config.Bind("Graphics", "DisableVsyncInVr", true,
                 "Turns the game's VSync off while VR runs (restored afterwards). The headset sets the frame rate; with VSync on, the game also waits for the monitor's refresh, " +
                 "which can leave the frame rate stuck at a fraction of the headset's (for example 30).");
-            LightweightMonitorView = Config.Bind("Graphics", "LightweightMonitorView", true,
-                "While VR runs, the game's own camera (the monitor mirror) draws nothing and its heavy effects are switched off, which saves a large amount of GPU time. " +
-                "The monitor shows a black window while you play in VR. false = keep the monitor mirror (slower).");
+            MonitorView = Config.Bind("Graphics", "MonitorView", MonitorViewMode.Headset,
+                "What the game window on your monitor shows while VR runs. " +
+                "Headset = the headset's view (left eye), which costs almost nothing. " +
+                "Black = a black window, the cheapest. " +
+                "Game = the game's own normal camera, which is like the headset view but drawn a second time (noticeably slower).");
             FixLiquidRays = Config.Bind("Graphics", "FixLiquidRays", false,
                 "Experimental: correct the water simulation's view rays for the headset cameras. Made the water look worse in testing, so off.");
             DynamicResolution = Config.Bind("Graphics", "DynamicResolution", false,
@@ -112,8 +115,6 @@ namespace NuclearesVR
             FarSmallObjectSize = Config.Bind("Graphics", "FarSmallObjectSize", 12f,
                 new ConfigDescription("What counts as a small object for FarSmallObjectDistance: an object whose bounding box is smaller than this many metres across (corner to corner).",
                     new AcceptableValueRange<float>(1f, 60f)));
-            MonitorShowsHeadset = Config.Bind("Graphics", "MonitorShowsHeadset", true,
-                "The game window shows the headset's view (left eye, cropped to the window) while VR runs. Costs almost nothing. false = a black window (only used with LightweightMonitorView on).");
             ShareWaterReflection = Config.Bind("Graphics", "ShareWaterReflection", true,
                 "The game's water planes render an extra mirrored copy of the scene for every camera that sees them; with two eyes that made looking at the reactor pool very expensive. " +
                 "true = the right eye reuses the left eye's reflection, and the reflection is refreshed only every few frames.");

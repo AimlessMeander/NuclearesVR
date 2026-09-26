@@ -23,7 +23,7 @@ namespace NuclearesVR.Vr
 
         private void UpdateMonitorMirror()
         {
-            var want = Plugin.MonitorShowsHeadset.Value && Plugin.LightweightMonitorView.Value && !_mirrorVisible &&
+            var want = Plugin.MonitorView.Value == MonitorViewMode.Headset && !_mirrorVisible &&
                        _mainCamera != null && _leftTex != null && _leftTex.IsCreated() && Screen.height > 0;
             if (!want)
             {
