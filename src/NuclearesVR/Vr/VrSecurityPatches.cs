@@ -31,7 +31,8 @@ namespace NuclearesVR.Vr
                     harmony.Patch(plane, prefix: new HarmonyMethod(typeof(VrSecurityPatches), nameof(WaterPlanePrefix)));
                 }
                 harmony.Patch(original, prefix: new HarmonyMethod(typeof(VrSecurityPatches), nameof(RenderPrefix)),
-                    postfix: new HarmonyMethod(typeof(VrSecurityPatches), nameof(RenderPostfix)));
+                    postfix: new HarmonyMethod(typeof(VrSecurityPatches), nameof(RenderPostfix)),
+                    finalizer: new HarmonyMethod(typeof(VrSecurityPatches), nameof(RenderFinalizer)));
             }
             catch (System.Exception ex)
             {
@@ -47,6 +48,21 @@ namespace NuclearesVR.Vr
 
         private static int _renderLogCount, _finishedCount;
         private static readonly HashSet<string> Finished = new HashSet<string>();
+
+        private static bool _cheapApplied;
+        private static float _savedShadowDistance, _savedLodBias;
+
+        /// <summary>Runs even if the draw throws: puts the shadow and detail settings back, for the CCTV camera's own draw only.</summary>
+        private static System.Exception RenderFinalizer(Camera __instance, System.Exception __exception)
+        {
+            if (_cheapApplied && __instance != null && __instance.name.StartsWith("VV_Camera"))
+            {
+                _cheapApplied = false;
+                QualitySettings.shadowDistance = _savedShadowDistance;
+                QualitySettings.lodBias = _savedLodBias;
+            }
+            return __exception;
+        }
 
         private static void RenderPostfix(Camera __instance)
         {
@@ -75,6 +91,16 @@ namespace NuclearesVR.Vr
             if (!string.IsNullOrEmpty(skipped) && skipped.IndexOf(__instance.name, System.StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 return false;
+            }
+            if (Plugin.SecurityCameraCheapRender.Value)
+            {
+                // Just for this camera's draw: no shadows and lower-detail models. A view of the turbine
+                // hall holds about 20 million vertices, and every shadow-casting light draws them again.
+                _savedShadowDistance = QualitySettings.shadowDistance;
+                _savedLodBias = QualitySettings.lodBias;
+                _cheapApplied = true;
+                QualitySettings.shadowDistance = 0f;
+                QualitySettings.lodBias = Mathf.Min(_savedLodBias, 0.4f);
             }
             if (_renderLogCount < 12)
             {
