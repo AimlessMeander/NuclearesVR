@@ -120,6 +120,7 @@ namespace NuclearesVR.Vr
         private static readonly System.Reflection.FieldInfo SecurityCamerasField =
             HarmonyLib.AccessTools.Field(typeof(controlVideoVigilancia), "Camaras");
         private readonly System.Collections.Generic.Dictionary<Camera, int> _securityCameraMasks = new System.Collections.Generic.Dictionary<Camera, int>();
+        private readonly System.Collections.Generic.List<Behaviour> _securityPostProcessing = new System.Collections.Generic.List<Behaviour>();
         private readonly System.Collections.Generic.Dictionary<Camera, CameraType> _securityCameraTypes = new System.Collections.Generic.Dictionary<Camera, CameraType>();
 
         private void HideLiquidFromSecurityCameras()
@@ -138,6 +139,16 @@ namespace NuclearesVR.Vr
                 }
                 foreach (var camera in cameras)
                 {
+                    // Post-processing on the CCTV cameras (ambient occlusion, reflections...) keeps per-camera
+                    // textures and compute work, and switching the CCTV on crashed the graphics driver with it
+                    // running alongside the headset cameras. The CCTV pictures come out plain instead.
+                    if (camera != null && !Plugin.SecurityCameraPostProcessing.Value &&
+                        camera.GetComponent("PostProcessLayer") is Behaviour layer && layer.enabled)
+                    {
+                        layer.enabled = false;
+                        _securityPostProcessing.Add(layer);
+                        Plugin.Logger.LogInfo($"[cctv] post-processing switched off on security camera '{camera.name}'.");
+                    }
                     // The simulation ignores Reflection-type cameras before it does anything at all with
                     // them (it still notes every other camera's size even when its layer is masked out).
                     if (camera != null && Plugin.SecurityCameraReflectionType.Value && camera.cameraType != CameraType.Reflection)
@@ -181,6 +192,14 @@ namespace NuclearesVR.Vr
                 }
             }
             _securityCameraTypes.Clear();
+            foreach (var layer in _securityPostProcessing)
+            {
+                if (layer != null)
+                {
+                    layer.enabled = true;
+                }
+            }
+            _securityPostProcessing.Clear();
         }
     }
 }
