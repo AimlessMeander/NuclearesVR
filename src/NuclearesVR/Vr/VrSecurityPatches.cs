@@ -44,10 +44,16 @@ namespace NuclearesVR.Vr
             return !(VrManager.VrRunning && valor && !Plugin.SecurityCameraWaterPlane.Value);
         }
 
+        private static int _renderLogCount, _finishedCount;
         private static readonly HashSet<string> Finished = new HashSet<string>();
 
         private static void RenderPostfix(Camera __instance)
         {
+            if (VrManager.VrRunning && __instance != null && __instance.name.StartsWith("VV_Camera") && _renderLogCount <= 12 && _finishedCount < 12)
+            {
+                _finishedCount++;
+                Plugin.Logger.LogInfo($"[cctv] render #{_finishedCount} of '{__instance.name}' finished at t={Time.realtimeSinceStartup:F2}");
+            }
             if (VrManager.VrRunning && __instance != null && __instance.name.StartsWith("VV_Camera") && Finished.Add(__instance.name))
             {
                 Plugin.Logger.LogInfo($"[cctv] first render of '{__instance.name}' finished.");
@@ -68,6 +74,11 @@ namespace NuclearesVR.Vr
             if (!string.IsNullOrEmpty(skipped) && skipped.IndexOf(__instance.name, System.StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 return false;
+            }
+            if (_renderLogCount < 12)
+            {
+                _renderLogCount++;
+                Plugin.Logger.LogInfo($"[cctv] render #{_renderLogCount}: '{__instance.name}' at frame {Time.frameCount}, t={Time.realtimeSinceStartup:F2}");
             }
             if (Logged.Add(__instance.name))
             {
