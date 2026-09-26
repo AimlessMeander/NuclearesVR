@@ -41,9 +41,10 @@ CONTROLS (Quest / Touch layout)
  pulled a trigger on last is the one that points.
 
    Trigger .............. Click. Hold it and move your hand to turn dials and move sliders.
-   Grip (hold) .......... Right mouse button: hold on a gauge or component to see its details in a
+   Right grip (hold) .... Right mouse button: hold on a gauge or component to see its details in a
                           panel in front of you; also opens switch covers.
                           With the grip held, push the left stick forward/back to zoom.
+   Left grip ............ Time control (the T key).
    Left stick ........... Walk, in the direction your head is facing.
    Right stick .......... Turn.
    A .................... Flashlight

@@ -77,7 +77,7 @@ namespace NuclearesVR
                 "Auto = start VR only if SteamVR is already running, so playing on the monitor without SteamVR never launches it. " +
                 "Always = always start VR when a game loads (launches SteamVR if needed). Never = never start VR.");
             GripIsRightClick = Config.Bind("Controllers", "GripIsRightClick", true,
-                "Holding a grip is the right mouse button: hold it on a gauge or component for its detail box, open switch guards, and with the stick forward/back to zoom.");
+                "Holding the RIGHT grip is the right mouse button (the left grip is time control): hold it on a gauge or component for its detail box, open switch guards, and with the stick forward/back to zoom.");
             MenuScreenHeight = Config.Bind("Controllers", "MenuScreenHeight", 0.8f,
                 new ConfigDescription("Height in metres of the floating screen used for the menus, dialogs and inventory. Smaller if its corners are cut off.",
                     new AcceptableValueRange<float>(0.3f, 2.0f)));
@@ -142,7 +142,7 @@ namespace NuclearesVR
             KeyX = Config.Bind("Buttons", "X", KeyCode.Return, keys + " Default: Enter (next step in the tutorial).");
             KeyXAlso = Config.Bind("Buttons", "XAlso", KeyCode.Space, keys + " A second key pressed together with X. Default: Space (jump).");
             KeyY = Config.Bind("Buttons", "Y", KeyCode.Escape, keys + " Default: menu.");
-            KeyLeftGrip = Config.Bind("Buttons", "LeftGrip", KeyCode.None, keys);
+            KeyLeftGrip = Config.Bind("Buttons", "LeftGrip", KeyCode.T, keys + " Default: time control.");
             KeyRightGrip = Config.Bind("Buttons", "RightGrip", KeyCode.None, keys);
             KeyLeftStick = Config.Bind("Buttons", "LeftStickClick", KeyCode.LeftShift, keys + " Default: run.");
             KeyRightStick = Config.Bind("Buttons", "RightStickClick", KeyCode.G, keys + " Default: Geiger counter (pressed when you let go, so it does not fire during the two-stick inventory press).");

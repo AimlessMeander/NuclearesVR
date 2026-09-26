@@ -23,7 +23,7 @@ Working, tested on hardware (Quest 3 over Steam Link / SteamVR, RTX 4090). The g
   - A laser per hand; the last hand to pull its trigger is the active pointer. Trigger clicks; hold the
     trigger and move the hand to turn dials, move sliders and valves, and step the 3-position switches.
   - Left stick walks (in the direction the head faces), right stick turns smoothly.
-  - Grip is the right mouse button (component information, switch covers, zoom).
+  - Right grip is the right mouse button (component information, switch covers, zoom); left grip is time control (T).
   - Buttons map to keys (defaults: A flashlight, B tablet, X jump and Enter, Y menu, left stick click run,
     right stick click Geiger counter, both stick clicks together the inventory). Holding both triggers for
     2 seconds recentres the view (the End key also does).

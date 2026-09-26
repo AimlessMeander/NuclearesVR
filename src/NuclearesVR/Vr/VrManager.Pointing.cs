@@ -294,8 +294,9 @@ namespace NuclearesVR.Vr
             VrKeys.SetAim(allowed && hand.PoseValid, hand.WorldPos, hand.WorldRot,
                           _mainCamera != null ? _mainCamera.transform : null);
 
-            // Holding a grip is the right mouse button (detail box on gauges, switch guards, zoom).
-            VrKeys.SetRightMouse(allowed && Plugin.GripIsRightClick.Value && (LeftHand.Grip || RightHand.Grip));
+            // Holding the right grip is the right mouse button (detail box on gauges, switch guards, zoom);
+            // the left grip is a key (time control by default).
+            VrKeys.SetRightMouse(allowed && Plugin.GripIsRightClick.Value && RightHand.Grip);
 
             // Right stick turns you, through the game's own mouse look.
             _movingLastFrame = allowed && (MoveStick.sqrMagnitude > StickPressThreshold * StickPressThreshold);
