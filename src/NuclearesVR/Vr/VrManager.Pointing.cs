@@ -257,11 +257,31 @@ namespace NuclearesVR.Vr
             if (MoveStick.y < -StickPressThreshold) _wantedKeys.Add(CConfiguracion.COpciones.CMapeo.KeyCode_Atras);
             if (MoveStick.x > StickPressThreshold) _wantedKeys.Add(CConfiguracion.COpciones.CMapeo.KeyCode_Derecha);
             if (MoveStick.x < -StickPressThreshold) _wantedKeys.Add(CConfiguracion.COpciones.CMapeo.KeyCode_Izquierda);
-            AddMapped(ButtonA, Plugin.KeyA.Value);
-            AddMapped(ButtonB, Plugin.KeyB.Value);
-            AddMapped(ButtonX, Plugin.KeyX.Value);
-            AddMapped(ButtonX, Plugin.KeyXAlso.Value);
-            AddMapped(ButtonY, Plugin.KeyY.Value);
+            var inCrane = InCrane;
+            if (inCrane != _wasInCrane)
+            {
+                _wasInCrane = inCrane;
+                Plugin.Logger.LogInfo(inCrane ? "[crane] seated - crane controls on" : "[crane] left the seat - normal controls");
+            }
+            if (inCrane)
+            {
+                // Sitting in the crane seat the buttons do crane things instead (the game's fixed keys).
+                AddMapped(ButtonA, KeyCode.Z);      // open / close the grabber
+                AddMapped(ButtonB, KeyCode.F);      // laser sight
+                AddMapped(ButtonY, KeyCode.Space);  // next camera
+                AddMapped(ButtonX, KeyCode.X);      // leave the crane
+                // Right stick forward / back moves the grabber up / down (the game's own up / down keys).
+                if (TurnStick.y > StickPressThreshold) _wantedKeys.Add(CConfiguracion.COpciones.CMapeo.KeyCode_Subir);
+                if (TurnStick.y < -StickPressThreshold) _wantedKeys.Add(CConfiguracion.COpciones.CMapeo.KeyCode_Bajar);
+            }
+            else
+            {
+                AddMapped(ButtonA, Plugin.KeyA.Value);
+                AddMapped(ButtonB, Plugin.KeyB.Value);
+                AddMapped(ButtonX, Plugin.KeyX.Value);
+                AddMapped(ButtonX, Plugin.KeyXAlso.Value);
+                AddMapped(ButtonY, Plugin.KeyY.Value);
+            }
             AddMapped(LeftHand.Grip, Plugin.KeyLeftGrip.Value);
             AddMapped(RightHand.Grip, Plugin.KeyRightGrip.Value);
             AddMapped(LeftHand.StickClick, Plugin.KeyLeftStick.Value);
@@ -281,6 +301,27 @@ namespace NuclearesVR.Vr
             VrKeys.TurnInput = turn * Plugin.TurnSpeed.Value;
         }
 
+        private static readonly System.Reflection.FieldInfo CranePlayerField =
+            HarmonyLib.AccessTools.Field(typeof(controlCrane), "_jugador");
+
+        /// <summary>True while the local player is sitting in the crane's control seat.</summary>
+        private static bool InCrane
+        {
+            get
+            {
+                try
+                {
+                    return controlCrane.Instancia != null && CranePlayerField != null &&
+                           CranePlayerField.GetValue(controlCrane.Instancia) != null;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+        }
+
+        private bool _wasInCrane;
         private Vector2 _dragOut;
         private int _releaseHoldFrames;
 

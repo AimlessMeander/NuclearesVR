@@ -52,6 +52,11 @@ CONTROLS (Quest / Touch layout)
    Y .................... Menu (pause)
    Left stick click ..... Run
    Right stick click .... Geiger counter
+   In the crane seat the buttons change:
+     Left stick ......... Drive the crane        Right stick fwd/back ... Grabber up / down
+     A .................. Open / close grabber   B ...................... Laser sight
+     Y .................. Next camera           X ...................... Leave the crane
+
    Keyboard: End ........ Recenter the view (do this when you are sitting comfortably).
 
  Every button can be changed in SteamVR's own controller settings (Devices > Controller
