@@ -22,8 +22,6 @@ namespace NuclearesVR.Vr
     internal partial class VrManager
     {
         private bool _benchRunning;
-        private bool _benchNoLiquid;
-        private int _benchEyeMaskRemove;
         private float _benchFar;
         private bool _benchOcclusion;
 

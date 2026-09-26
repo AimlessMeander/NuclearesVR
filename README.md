@@ -45,22 +45,15 @@ BepInEx 5.4.23.5 is installed in the game folder. Logs: `<game>/BepInEx/LogOutpu
 `reference/` (a decompile of `Assembly-CSharp.dll`, gitignored) is regenerated with
 `ilspycmd -p -o reference/Assembly-CSharp <game>/Nucleares_Data/Managed/Assembly-CSharp.dll`.
 
-## Hotkeys (all Ctrl+Shift+...; diagnostics and experiments, safe to ignore)
+## Hotkeys (Ctrl+Shift+..., diagnostics only, safe to ignore)
 
 | Key | What |
 |---|---|
-| End | Recenter the headset |
-| L | Dump cameras and nearby lights to the log |
-| M | Dump the renderers/materials/UI under your view direction (used for the monitor problem) |
-| R | Toggle Forward / Deferred rendering on the eye cameras (Forward is the default) |
-| K | Toggle stripping spot-light shadows (off by default; crashed the game once, see git history) |
-| T | Toggle unlit swap for lit 3D text (off by default; did not fix the monitors) |
-| G | Experiment: hide glass covers near you (did not fix the monitors) |
-| Y | Experiment: 3D text ignores depth test (had no effect: the lit text shader lacks that property) |
-| Z | Cycle text draw-order experiments (state 2 is what the automatic fix does) |
-| X | Dump nearby 3D text (visibility, frustum, material) |
+| End (no modifiers) | Recenter the headset |
 | B | Benchmark: applies candidate performance settings one by one and logs SteamVR GPU time for each ([bench]) |
 | V | View probe: groups what is drawn in the current view (by type, shader, distance band, size), hides each group in turn and logs the GPU time ([probe]) |
+
+(The experiment hotkeys used to find the monitor-text and lighting problems have been removed; they are in git history.)
 
 ## How it works, and things learned the hard way
 
@@ -104,10 +97,9 @@ order, so the winner changed with head position.
 **Fix** (`VrManager.MonitorText.cs`, `UpdateLateText`): move the 3D text materials to render queue 2500 so
 they always draw after the surface. The game's shader and depth test are otherwise untouched.
 
-How it was found: Ctrl+Shift+Z (in `VrManager.Experiments.cs`) forces text on top (unlit, no depth
-test), which fixed it and proved it was a depth-ordering problem; the second Ctrl+Shift+Z state (queue
-only) is the gentle version that became the fix. Ctrl+Shift+X dumps nearby 3D text (visibility,
-frustum, material). Earlier experiments that changed nothing (emission, depth precision, near/far,
+How it was found (experiment code since removed, see git history): a hotkey forced text on top (unlit, no depth
+test), which fixed it and proved it was a depth-ordering problem; the queue-only variant
+is the gentle version that became the fix. Earlier experiments that changed nothing (emission, depth precision, near/far,
 unlit text, glass, text depth test) were all sound tests of the wrong things; the depth-test one never
 applied because the lit text shader has no `unity_GUIZTestMode` property.
 
@@ -140,7 +132,7 @@ smoothing snaps a frame that is a little over budget to exactly half rate (45 at
   resized per camera; the window and the eyes have different sizes, so the textures were recreated every frame
   (likely cause of random NVIDIA driver crashes). The liquid's layer is removed from the game camera's mask so
   only the two same-size eye cameras use it (`LiquidSimulationInVr`; false marks the eyes as VR cameras so it
-  skips them). Its eye-ray correction experiment (`FixLiquidRays`) made the water worse and is off.
+  skips them). An eye-ray correction experiment made the water worse and was removed (git history). Known issue: the water can look different in each eye and is drawn over the lasers and menu.
 
 ## Motion controllers: how it works
 

@@ -220,7 +220,6 @@ namespace NuclearesVR.Vr
             _system = null;
             yield return null;
             yield return null;
-            ReleaseRetiredTextures(all: true);
             if (_leftTex != null) { _leftTex.Release(); Destroy(_leftTex); _leftTex = null; }
             if (_rightTex != null) { _rightTex.Release(); Destroy(_rightTex); _rightTex = null; }
             _initTried = false;
@@ -257,11 +256,9 @@ namespace NuclearesVR.Vr
                 _headsetHz = hz > 20f ? hz : 90f;
                 _currentScale = Plugin.RenderScale.Value;
                 _currentMsaa = Plugin.EyeMsaa.Value;
-                _dynWindowStart = 0f;
                 _leftTex = MakeEyeTexture(_currentScale, _currentMsaa);
                 _rightTex = MakeEyeTexture(_currentScale, _currentMsaa);
-                Plugin.Logger.LogInfo($"Eye textures {_leftTex.width}x{_leftTex.height} (render scale {_currentScale:F2}), MSAA {_currentMsaa}x, headset {_headsetHz:F0} Hz, " +
-                                      $"dynamic resolution {(Plugin.DynamicResolution.Value ? "on" : "off")}.");
+                Plugin.Logger.LogInfo($"Eye textures {_leftTex.width}x{_leftTex.height} (render scale {_currentScale:F2}), MSAA {_currentMsaa}x, headset {_headsetHz:F0} Hz.");
                 Plugin.Logger.LogInfo($"Eye render textures created: left.IsCreated={_leftTex.IsCreated()}, right.IsCreated={_rightTex.IsCreated()}");
 
                 if (SystemInfo.graphicsDeviceType != UnityEngine.Rendering.GraphicsDeviceType.Direct3D11)
@@ -411,7 +408,6 @@ namespace NuclearesVR.Vr
                 }
 
                 CheckDiagnosticsKey();
-                UpdateLightingWorkarounds();
                 UpdateMonitorTextShaders();
 
                 if (Input.GetKeyDown(KeyCode.End))
@@ -816,7 +812,7 @@ namespace NuclearesVR.Vr
         {
             eye.clearFlags = _mainCamera.clearFlags;
             eye.backgroundColor = _mainCamera.backgroundColor;
-            eye.cullingMask = (_gameMask | (LiquidVisibleInEyes ? _liquidLayerMask : 0)) & ~_benchEyeMaskRemove;
+            eye.cullingMask = (_gameMask | (LiquidVisibleInEyes ? _liquidLayerMask : 0));
             eye.renderingPath = ForwardOnEyes ? RenderingPath.Forward : _mainCamera.renderingPath;
             eye.allowMSAA = true; // the main camera may have it off (Deferred cannot use it); the eyes are Forward
             eye.useOcclusionCulling = Plugin.EyeOcclusionCulling.Value || _benchOcclusion;
@@ -890,7 +886,6 @@ namespace NuclearesVR.Vr
                 ApplyShadowPolicy();
                 UpdateFarSmallObjects();
                 LogPerformance();
-                UpdateDynamicResolution();
 
                 var playerLook = PlayerLook.Instancia;
                 if (playerLook == null)

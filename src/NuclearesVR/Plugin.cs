@@ -38,8 +38,6 @@ namespace NuclearesVR
         internal static ConfigEntry<bool> LiquidInVr;
         internal static ConfigEntry<bool> DisableVsyncInVr;
         internal static ConfigEntry<MonitorViewMode> MonitorView;
-        internal static ConfigEntry<bool> FixLiquidRays;
-        internal static ConfigEntry<bool> DynamicResolution;
         internal static ConfigEntry<bool> EyeOcclusionCulling;
         internal static ConfigEntry<float> EyeDefaultLayerDistance;
         internal static ConfigEntry<float> VrShadowDistance;
@@ -47,7 +45,6 @@ namespace NuclearesVR
         internal static ConfigEntry<float> FarSmallObjectSize;
         internal static ConfigEntry<bool> ShareWaterReflection;
         internal static ConfigEntry<int> WaterReflectionEveryNthFrame;
-        internal static ConfigEntry<float> MinRenderScale;
         internal static ConfigEntry<int> EyeMsaa;
         internal static ConfigEntry<float> RenderScale;
         internal static ConfigEntry<KeyCode> KeyA, KeyB, KeyX, KeyXAlso, KeyY;
@@ -88,13 +85,6 @@ namespace NuclearesVR
                 "Headset = the headset's view (left eye), which costs almost nothing. " +
                 "Black = a black window, the cheapest. " +
                 "Game = the game's own normal camera, which is like the headset view but drawn a second time (noticeably slower).");
-            FixLiquidRays = Config.Bind("Graphics", "FixLiquidRays", false,
-                "Experimental: correct the water simulation's view rays for the headset cameras. Made the water look worse in testing, so off.");
-            DynamicResolution = Config.Bind("Graphics", "DynamicResolution", false,
-                "Lowers the headset picture's resolution when the GPU cannot keep up with the headset's refresh rate (some views are much more expensive than others), " +
-                "and raises it again when there is room. RenderScale is the sharpest it will go.");
-            MinRenderScale = Config.Bind("Graphics", "MinRenderScale", 0.55f,
-                new ConfigDescription("The lowest resolution scale dynamic resolution will use.", new AcceptableValueRange<float>(0.3f, 1.0f)));
             EyeOcclusionCulling = Config.Bind("Graphics", "EyeOcclusionCulling", true,
                 "Occlusion culling for the headset cameras: skips drawing objects hidden behind walls. Measured to cut the frame cost of a busy view roughly in half. " +
                 "It was switched off originally because it may once have made walls disappear; if you see walls or scenery vanish, turn this off and tell me.");
