@@ -485,6 +485,8 @@ namespace NuclearesVR.Vr
                 _mainCamera = main;
                 _baseLocalPosition = main.transform.localPosition;
 
+                Camera.onPreCull -= OnEyePreCull;
+                Camera.onPreCull += OnEyePreCull;
                 _leftEyeCamera = CreateEyeCamera(main, "NuclearesVR_LeftEye", EVREye.Eye_Left, _leftTex);
                 _rightEyeCamera = CreateEyeCamera(main, "NuclearesVR_RightEye", EVREye.Eye_Right, _rightTex);
 
@@ -570,6 +572,8 @@ namespace NuclearesVR.Vr
 
         private void DestroyEyeCameras()
         {
+            Camera.onPreCull -= OnEyePreCull;
+            _craneViewSource = null;
             RemoveMonitorMirror();
             RestoreMainMask();
             _eyeNear = _eyeFar = -1f;
@@ -936,6 +940,8 @@ namespace NuclearesVR.Vr
                 // exactly, then add our head offset.
                 _savedBaseRotation = _mainCamera.transform.localRotation;
                 var craneCamera = CraneOutsideCamera();
+                _craneViewSource = craneCamera;
+                _craneViewHeadRotation = deltaRot;
                 if (craneCamera != null)
                 {
                     // An outside crane view: sit at that camera, turning with the head. The restore step

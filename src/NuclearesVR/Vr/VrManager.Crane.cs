@@ -15,6 +15,23 @@ namespace NuclearesVR.Vr
         private static readonly System.Reflection.FieldInfo CraneCameraField = AccessTools.Field(typeof(controlCrane), "Camara");
         private static readonly System.Reflection.FieldInfo CraneViewField = AccessTools.Field(typeof(controlCrane), "_posActual");
 
+        private Transform _craneViewSource;
+        private Quaternion _craneViewHeadRotation = Quaternion.identity;
+
+        /// <summary>
+        /// Just before an eye renders, put the rig on the crane camera again. The crane and its camera can
+        /// still move after our LateUpdate (physics smoothing, other late scripts), and an old position
+        /// made the crane appear in several places at once while it moved.
+        /// </summary>
+        private void OnEyePreCull(Camera camera)
+        {
+            if (_craneViewSource == null || _mainCamera == null || (camera != _leftEyeCamera && camera != _rightEyeCamera))
+            {
+                return;
+            }
+            _mainCamera.transform.SetPositionAndRotation(_craneViewSource.position, _craneViewSource.rotation * _craneViewHeadRotation);
+        }
+
         /// <summary>The transform of the crane camera to sit at, or null when the normal view applies.</summary>
         private static Transform CraneOutsideCamera()
         {
