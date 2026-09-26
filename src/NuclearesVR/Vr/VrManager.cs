@@ -581,7 +581,7 @@ namespace NuclearesVR.Vr
             _rightEyeCamera = null;
         }
 
-        private const float MirrorScreenDistance = 1.5f;
+        private static float MirrorScreenDistance => Plugin.MenuScreenDistance.Value;
         private static float MirrorScreenOffsetY => -Plugin.MenuScreenDown.Value;
         private static float MirrorScreenHeight => Plugin.MenuScreenHeight.Value;
 
