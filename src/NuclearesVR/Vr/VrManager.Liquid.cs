@@ -139,8 +139,18 @@ namespace NuclearesVR.Vr
                 {
                     return;
                 }
+                var waterMask = Plugin.SecurityCameraWater.Value ? 0 : WaterPlaneLayerMask();
                 foreach (var camera in cameras)
                 {
+                    if (camera != null && waterMask != 0 && (camera.cullingMask & waterMask) != 0)
+                    {
+                        if (!_securityCameraMasks.ContainsKey(camera))
+                        {
+                            _securityCameraMasks[camera] = camera.cullingMask;
+                        }
+                        camera.cullingMask &= ~waterMask;
+                        Plugin.Logger.LogInfo($"[cctv] water planes hidden from security camera '{camera.name}'.");
+                    }
                     if (camera != null && Plugin.SecurityCameraLightMode.Value && _securityLightened.Add(camera))
                     {
                         LightenSecurityCamera(camera);
@@ -178,6 +188,33 @@ namespace NuclearesVR.Vr
             {
                 LogThrottled("cctv-mask-error", $"Security camera mask error: {ex.Message}");
             }
+        }
+
+        private int _waterMaskCache;
+        private float _nextWaterMaskScan;
+
+        /// <summary>The layers the game's water planes (planar reflections) are on. They are never on the Default or UI layers here.</summary>
+        private int WaterPlaneLayerMask()
+        {
+            if (Time.unscaledTime < _nextWaterMaskScan)
+            {
+                return _waterMaskCache;
+            }
+            _nextWaterMaskScan = Time.unscaledTime + 10f;
+            var mask = 0;
+            var count = 0;
+            foreach (var water in FindObjectsOfType<NVWaterShaders>())
+            {
+                mask |= 1 << water.gameObject.layer;
+                count++;
+            }
+            mask &= ~NeverStripLayers;
+            if (mask != _waterMaskCache)
+            {
+                Plugin.Logger.LogInfo($"[cctv] {count} reflective water plane(s) on layer mask {mask}.");
+            }
+            _waterMaskCache = mask;
+            return mask;
         }
 
         // Draw the CCTV cameras more cheaply: Forward instead of Deferred, a shorter view distance, and no

@@ -38,7 +38,7 @@ namespace NuclearesVR
         internal static ConfigEntry<bool> LiquidInVr;
         internal static ConfigEntry<bool> DisableVsyncInVr;
         internal static ConfigEntry<MonitorViewMode> MonitorView;
-        internal static ConfigEntry<bool> SecurityCameras, SecurityCameraWaterPlane, SecurityCameraReflectionType, SecurityCameraPostProcessing, SecurityCameraLightMode;
+        internal static ConfigEntry<bool> SecurityCameras, SecurityCameraWaterPlane, SecurityCameraReflectionType, SecurityCameraPostProcessing, SecurityCameraLightMode, SecurityCameraWater;
         internal static ConfigEntry<string> SecurityCamerasSkipped;
         internal static ConfigEntry<bool> EyeOcclusionCulling;
         internal static ConfigEntry<float> EyeDefaultLayerDistance;
@@ -117,6 +117,8 @@ namespace NuclearesVR
                 "false = the CCTV cameras are drawn without post-processing (ambient occlusion etc.) while VR runs. Part of the CCTV crash investigation.");
             SecurityCameraLightMode = Config.Bind("Graphics", "SecurityCameraLightMode", true,
                 "Draws the CCTV cameras more cheaply while VR runs: Forward instead of Deferred, view distance capped at 150 m, no shadows from their extra light. Part of the CCTV crash investigation.");
+            SecurityCameraWater = Config.Bind("Graphics", "SecurityCameraWater", false,
+                "false = the CCTV cameras do not draw the game's water planes in VR (each one makes the game render an extra mirrored copy of the scene). Part of the CCTV crash investigation.");
             SecurityCamerasSkipped = Config.Bind("Graphics", "SecurityCamerasSkipped", "",
                 "Names of CCTV cameras the game must not draw in VR, for example: VV_Camera_CORE_ROOM,VV_Camera_CORE_INSIDE (their screens stay black). Part of the CCTV crash investigation.");
             ShareWaterReflection = Config.Bind("Graphics", "ShareWaterReflection", true,
