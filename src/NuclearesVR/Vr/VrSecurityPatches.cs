@@ -23,6 +23,11 @@ namespace NuclearesVR.Vr
                     Plugin.Logger.LogWarning("Security camera patch: Camera.Render not found.");
                     return;
                 }
+                var plane = AccessTools.Method(typeof(ControlReservorioDeAgua), "SetPlanoDeAguaVisible");
+                if (plane != null)
+                {
+                    harmony.Patch(plane, prefix: new HarmonyMethod(typeof(VrSecurityPatches), nameof(WaterPlanePrefix)));
+                }
                 harmony.Patch(original, prefix: new HarmonyMethod(typeof(VrSecurityPatches), nameof(RenderPrefix)),
                     postfix: new HarmonyMethod(typeof(VrSecurityPatches), nameof(RenderPostfix)));
             }
@@ -30,6 +35,12 @@ namespace NuclearesVR.Vr
             {
                 Plugin.Logger.LogError($"Security camera patch failed: {ex}");
             }
+        }
+
+        /// <summary>The CCTV switches a water plane on in the reactor pool for the core camera; skipped while VR runs unless allowed.</summary>
+        private static bool WaterPlanePrefix(bool valor)
+        {
+            return !(VrManager.VrRunning && valor && !Plugin.SecurityCameraWaterPlane.Value);
         }
 
         private static readonly HashSet<string> Finished = new HashSet<string>();
@@ -49,6 +60,11 @@ namespace NuclearesVR.Vr
                 return true;
             }
             if (!Plugin.SecurityCameras.Value)
+            {
+                return false;
+            }
+            var skipped = Plugin.SecurityCamerasSkipped.Value;
+            if (!string.IsNullOrEmpty(skipped) && skipped.IndexOf(__instance.name, System.StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 return false;
             }

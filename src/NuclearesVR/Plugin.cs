@@ -38,7 +38,8 @@ namespace NuclearesVR
         internal static ConfigEntry<bool> LiquidInVr;
         internal static ConfigEntry<bool> DisableVsyncInVr;
         internal static ConfigEntry<MonitorViewMode> MonitorView;
-        internal static ConfigEntry<bool> SecurityCameras;
+        internal static ConfigEntry<bool> SecurityCameras, SecurityCameraWaterPlane;
+        internal static ConfigEntry<string> SecurityCamerasSkipped;
         internal static ConfigEntry<bool> EyeOcclusionCulling;
         internal static ConfigEntry<float> EyeDefaultLayerDistance;
         internal static ConfigEntry<float> VrShadowDistance;
@@ -108,6 +109,10 @@ namespace NuclearesVR
                     new AcceptableValueRange<float>(1f, 60f)));
             SecurityCameras = Config.Bind("Graphics", "SecurityCameras", true,
                 "false = the game does not draw the CCTV system's cameras while VR runs (the CCTV screens stay black). A workaround if switching the CCTV on crashes the game.");
+            SecurityCameraWaterPlane = Config.Bind("Graphics", "SecurityCameraWaterPlane", false,
+                "The CCTV switches on a plain water surface in the reactor pool while it draws the core camera. false = not in VR (that view shows an empty pool). Part of the CCTV crash investigation.");
+            SecurityCamerasSkipped = Config.Bind("Graphics", "SecurityCamerasSkipped", "",
+                "Names of CCTV cameras the game must not draw in VR, for example: VV_Camera_CORE_ROOM,VV_Camera_CORE_INSIDE (their screens stay black). Part of the CCTV crash investigation.");
             ShareWaterReflection = Config.Bind("Graphics", "ShareWaterReflection", true,
                 "The game's water planes render an extra mirrored copy of the scene for every camera that sees them; with two eyes that made looking at the reactor pool very expensive. " +
                 "true = the right eye reuses the left eye's reflection, and the reflection is refreshed only every few frames.");
