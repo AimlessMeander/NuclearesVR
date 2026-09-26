@@ -41,6 +41,7 @@ namespace NuclearesVR
         internal static ConfigEntry<bool> SecurityCameras, SecurityCameraWaterPlane, SecurityCameraReflectionType, SecurityCameraPostProcessing, SecurityCameraLightMode, SecurityCameraWater, SecurityCameraCheapRender;
         internal static ConfigEntry<string> SecurityCamerasSkipped;
         internal static ConfigEntry<float> SecurityCameraRefreshSeconds;
+        internal static ConfigEntry<int> SecurityCameraMaxVertices;
         internal static ConfigEntry<bool> EyeOcclusionCulling;
         internal static ConfigEntry<float> EyeDefaultLayerDistance;
         internal static ConfigEntry<float> VrShadowDistance;
@@ -125,6 +126,9 @@ namespace NuclearesVR
             SecurityCameraRefreshSeconds = Config.Bind("Graphics", "SecurityCameraRefreshSeconds", 1.5f,
                 new ConfigDescription("Minimum time between the game drawing one CCTV camera picture and the next while VR runs (the game's own is about 0.3 s). Longer is easier on the graphics card, but the pictures update less often.",
                     new AcceptableValueRange<float>(0.2f, 10f)));
+            SecurityCameraMaxVertices = Config.Bind("Graphics", "SecurityCameraMaxVertices", 8,
+                new ConfigDescription("The most geometry, in millions of vertices, a CCTV camera may draw in VR. Each camera's view distance is shortened until its view fits (some rooms hold 20-45 million and froze or crashed the game). 0 = no limit.",
+                    new AcceptableValueRange<int>(0, 100)));
             SecurityCamerasSkipped = Config.Bind("Graphics", "SecurityCamerasSkipped", "",
                 "Names of CCTV cameras the game must not draw in VR, for example: VV_Camera_CORE_ROOM,VV_Camera_CORE_INSIDE (their screens stay black). Part of the CCTV crash investigation.");
             ShareWaterReflection = Config.Bind("Graphics", "ShareWaterReflection", true,

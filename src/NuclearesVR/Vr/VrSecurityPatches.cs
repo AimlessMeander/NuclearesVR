@@ -123,6 +123,14 @@ namespace NuclearesVR.Vr
             }
             if (Logged.Add(__instance.name))
             {
+                try
+                {
+                    FitViewToBudget(__instance);
+                }
+                catch (System.Exception ex)
+                {
+                    Plugin.Logger.LogWarning($"[cctv] view budget failed: {ex.Message}");
+                }
                 var target = __instance.targetTexture;
                 Plugin.Logger.LogInfo($"[cctv] first render of '{__instance.name}': target={(target != null ? $"{target.width}x{target.height} aa{target.antiAliasing} depth{target.depth} {target.format}" : "none")}, " +
                                       $"mask={__instance.cullingMask}, path={__instance.actualRenderingPath}, hdr={__instance.allowHDR}, msaa={__instance.allowMSAA}");
@@ -137,6 +145,65 @@ namespace NuclearesVR.Vr
                 }
             }
             return true;
+        }
+
+        /// <summary>
+        /// Some rooms hold tens of millions of vertices in view (the internal supply room: 44.8 million),
+        /// and drawing that every second alongside the headset views froze or crashed the game. Find the
+        /// longest view distance whose contents stay within the vertex budget and use that.
+        /// </summary>
+        private static void FitViewToBudget(Camera camera)
+        {
+            var budget = (long)Plugin.SecurityCameraMaxVertices.Value * 1000000L;
+            if (budget <= 0)
+            {
+                return;
+            }
+            var position = camera.transform.position;
+            var eligible = new List<KeyValuePair<Bounds, int>>();
+            foreach (var renderer in Object.FindObjectsOfType<Renderer>())
+            {
+                if (renderer == null || !renderer.enabled || renderer.forceRenderingOff || !renderer.gameObject.activeInHierarchy ||
+                    (camera.cullingMask & (1 << renderer.gameObject.layer)) == 0)
+                {
+                    continue;
+                }
+                var filter = renderer.GetComponent<MeshFilter>();
+                var count = filter != null && filter.sharedMesh != null ? filter.sharedMesh.vertexCount : 0;
+                if (count > 0)
+                {
+                    eligible.Add(new KeyValuePair<Bounds, int>(renderer.bounds, count));
+                }
+            }
+
+            var startFar = camera.farClipPlane;
+            var chosen = 12f;
+            long chosenVertices = 0;
+            foreach (var far in new[] { startFar, 100f, 70f, 50f, 35f, 25f, 18f, 12f })
+            {
+                if (far > startFar)
+                {
+                    continue;
+                }
+                camera.farClipPlane = far;
+                var planes = GeometryUtility.CalculateFrustumPlanes(camera);
+                long vertices = 0;
+                foreach (var pair in eligible)
+                {
+                    if (pair.Key.SqrDistance(position) <= far * far && GeometryUtility.TestPlanesAABB(planes, pair.Key))
+                    {
+                        vertices += pair.Value;
+                    }
+                }
+                chosen = far;
+                chosenVertices = vertices;
+                if (vertices <= budget)
+                {
+                    break;
+                }
+            }
+            camera.farClipPlane = chosen;
+            Plugin.Logger.LogInfo($"[cctv] '{camera.name}' view distance set to {chosen:F0} m (was {startFar:F0}): about {chosenVertices:N0} vertices in view, budget {budget:N0}.");
         }
 
         /// <summary>What the camera is about to draw: renderers in its view grouped by shader, and lights in range.</summary>
