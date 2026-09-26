@@ -86,6 +86,7 @@ namespace NuclearesVR.Vr
         private static readonly System.Reflection.FieldInfo SecurityCamerasField =
             HarmonyLib.AccessTools.Field(typeof(controlVideoVigilancia), "Camaras");
         private readonly System.Collections.Generic.Dictionary<Camera, int> _securityCameraMasks = new System.Collections.Generic.Dictionary<Camera, int>();
+        private readonly System.Collections.Generic.Dictionary<Camera, CameraType> _securityCameraTypes = new System.Collections.Generic.Dictionary<Camera, CameraType>();
 
         private void HideLiquidFromSecurityCameras()
         {
@@ -103,6 +104,14 @@ namespace NuclearesVR.Vr
                 }
                 foreach (var camera in cameras)
                 {
+                    // The simulation ignores Reflection-type cameras before it does anything at all with
+                    // them (it still notes every other camera's size even when its layer is masked out).
+                    if (camera != null && camera.cameraType != CameraType.Reflection)
+                    {
+                        _securityCameraTypes[camera] = camera.cameraType;
+                        camera.cameraType = CameraType.Reflection;
+                        Plugin.Logger.LogInfo($"[cctv] security camera '{camera.name}' marked as a reflection-type camera.");
+                    }
                     if (camera != null && (camera.cullingMask & _liquidLayerMask) != 0)
                     {
                         if (!_securityCameraMasks.ContainsKey(camera))
@@ -130,6 +139,14 @@ namespace NuclearesVR.Vr
                 }
             }
             _securityCameraMasks.Clear();
+            foreach (var pair in _securityCameraTypes)
+            {
+                if (pair.Key != null)
+                {
+                    pair.Key.cameraType = pair.Value;
+                }
+            }
+            _securityCameraTypes.Clear();
         }
     }
 }

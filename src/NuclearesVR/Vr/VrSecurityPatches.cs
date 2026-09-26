@@ -23,11 +23,22 @@ namespace NuclearesVR.Vr
                     Plugin.Logger.LogWarning("Security camera patch: Camera.Render not found.");
                     return;
                 }
-                harmony.Patch(original, prefix: new HarmonyMethod(typeof(VrSecurityPatches), nameof(RenderPrefix)));
+                harmony.Patch(original, prefix: new HarmonyMethod(typeof(VrSecurityPatches), nameof(RenderPrefix)),
+                    postfix: new HarmonyMethod(typeof(VrSecurityPatches), nameof(RenderPostfix)));
             }
             catch (System.Exception ex)
             {
                 Plugin.Logger.LogError($"Security camera patch failed: {ex}");
+            }
+        }
+
+        private static readonly HashSet<string> Finished = new HashSet<string>();
+
+        private static void RenderPostfix(Camera __instance)
+        {
+            if (VrManager.VrRunning && __instance != null && __instance.name.StartsWith("VV_Camera") && Finished.Add(__instance.name))
+            {
+                Plugin.Logger.LogInfo($"[cctv] first render of '{__instance.name}' finished.");
             }
         }
 
