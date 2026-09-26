@@ -32,6 +32,10 @@ Working, tested on hardware (Quest 3 over Steam Link / SteamVR, RTX 4090). The g
 - **Inventory:** the game's ring of 3D crates and its 2D buttons show on the virtual screen; dragging spins the ring.
 
 Known issues:
+- **Use a new save.** The mod has not been tested on existing saves.
+- **Chemical systems are untested** (only played with them switched off).
+- If your head or hands end up in a strange position or orientation (usually after using a keypad or a
+  ladder), press B to open the tablet and press it again to close it. Your view will recenter.
 - **CCTV cameras** are switched off in VR (the game crashed the graphics driver): see the last section.
 - The reactor pool's water can look different in each eye, and is drawn over the lasers and menu (the water
   simulation is a separate pass that ignores objects the mod adds).

@@ -104,6 +104,10 @@ SETTINGS
 
 KNOWN LIMITS
 ------------
+ * Use a NEW save. The mod has not been tested on existing saves, so do not risk one you care about.
+ * The chemical systems have not been tested (only played with them switched off).
+ * If your head or hands end up in a strange position or orientation (usually after using a keypad
+   or a ladder), press B to open the tablet and press it again to close it. Your view will recenter.
  * The in-game CCTV screens stay black in VR (switching them on crashed the game).
  * The inventory, menus and dialogs show on a floating flat screen, not in 3D.
  * The reactor pool's water can look slightly different in each eye, and it is drawn over the laser
