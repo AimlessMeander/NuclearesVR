@@ -38,6 +38,7 @@ namespace NuclearesVR
         internal static ConfigEntry<bool> LiquidInVr;
         internal static ConfigEntry<bool> DisableVsyncInVr;
         internal static ConfigEntry<MonitorViewMode> MonitorView;
+        internal static ConfigEntry<bool> SecurityCameras;
         internal static ConfigEntry<bool> EyeOcclusionCulling;
         internal static ConfigEntry<float> EyeDefaultLayerDistance;
         internal static ConfigEntry<float> VrShadowDistance;
@@ -105,6 +106,8 @@ namespace NuclearesVR
             FarSmallObjectSize = Config.Bind("Graphics", "FarSmallObjectSize", 12f,
                 new ConfigDescription("What counts as a small object for FarSmallObjectDistance: an object whose bounding box is smaller than this many metres across (corner to corner).",
                     new AcceptableValueRange<float>(1f, 60f)));
+            SecurityCameras = Config.Bind("Graphics", "SecurityCameras", true,
+                "false = the game does not draw the CCTV system's cameras while VR runs (the CCTV screens stay black). A workaround if switching the CCTV on crashes the game.");
             ShareWaterReflection = Config.Bind("Graphics", "ShareWaterReflection", true,
                 "The game's water planes render an extra mirrored copy of the scene for every camera that sees them; with two eyes that made looking at the reactor pool very expensive. " +
                 "true = the right eye reuses the left eye's reflection, and the reflection is refreshed only every few frames.");
@@ -133,6 +136,7 @@ namespace NuclearesVR
             _harmony.PatchAll();
             Vr.InputPatches.Apply(_harmony);
             Vr.VrWaterPatches.Apply(_harmony);
+            Vr.VrSecurityPatches.Apply(_harmony);
 
             // Awake() runs in Nucleares' very first bootstrap scene, before Steam
             // even initializes - and that scene gets torn down and replaced
