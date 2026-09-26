@@ -130,6 +130,10 @@ namespace NuclearesVR.Vr
             try
             {
                 var system = controlVideoVigilancia.Instancia;
+                if (!Plugin.SecurityCameras.Value)
+                {
+                    return; // the cameras are not drawn in VR, so they are left exactly as the game has them
+                }
                 if (system == null || SecurityCamerasField == null || _liquidLayerMask == 0 || !LiquidStripSafe)
                 {
                     return;

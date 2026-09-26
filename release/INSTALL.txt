@@ -82,6 +82,8 @@ SETTINGS
    EyeOcclusionCulling .. Skips objects hidden behind walls (default on). Turn off if walls flicker.
    MonitorView .......... What the monitor shows in VR: Headset (default, the headset's view), Black
                           (cheapest), or Game (the game's normal camera, slower).
+   SecurityCameras ...... The in-game CCTV cameras are switched off in VR (default false): the CCTV screens
+                          stay black. Switching them on used to freeze or crash the game in VR.
    LiquidSimulationInVr . Draw the water simulation in the headset (default on). If the game crashes
                           often, set this to false.
    DisableVsyncInVr ..... Turns the game's VSync off while VR runs (default on).

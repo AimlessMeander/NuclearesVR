@@ -109,8 +109,10 @@ namespace NuclearesVR
             FarSmallObjectSize = Config.Bind("Graphics", "FarSmallObjectSize", 12f,
                 new ConfigDescription("What counts as a small object for FarSmallObjectDistance: an object whose bounding box is smaller than this many metres across (corner to corner).",
                     new AcceptableValueRange<float>(1f, 60f)));
-            SecurityCameras = Config.Bind("Graphics", "SecurityCameras", true,
-                "false = the game does not draw the CCTV system's cameras while VR runs (the CCTV screens stay black). A workaround if switching the CCTV on crashes the game.");
+            SecurityCameras = Config.Bind("Graphics", "SecurityCameras", false,
+                "Whether the game draws the CCTV system's cameras while VR runs. Default false: the CCTV screens stay black in VR. " +
+                "Switching the CCTV on froze or crashed the game (the graphics card fails while the extra cameras draw beside the headset views), and no reliable fix was found. " +
+                "true = let them draw (experimental; the other SecurityCamera... settings then reduce the load).");
             SecurityCameraWaterPlane = Config.Bind("Graphics", "SecurityCameraWaterPlane", false,
                 "The CCTV switches on a plain water surface in the reactor pool while it draws the core camera. false = not in VR (that view shows an empty pool). Part of the CCTV crash investigation.");
             SecurityCameraReflectionType = Config.Bind("Graphics", "SecurityCameraReflectionType", false,
