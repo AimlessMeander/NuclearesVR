@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using HarmonyLib;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace NuclearesVR.Vr
 {
