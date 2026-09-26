@@ -76,6 +76,60 @@ namespace NuclearesVR.Vr
                 Plugin.Logger.LogInfo($"Water simulation objects are on layer mask {mask} " +
                                       (LiquidStripSafe ? "(hidden from the game's main camera while VR runs)." : "(Default/UI layer - cannot be hidden safely; headset cameras will skip the simulation instead)."));
             }
+            HideLiquidFromSecurityCameras();
+        }
+
+        // The CCTV system draws each of its cameras by hand (Camera.Render) into small textures. The
+        // simulation would resize its shared textures for every one of those, and switching the CCTV on
+        // crashed the graphics driver. The game already swaps in a plain water plane for the reactor
+        // camera, so the simulation is not wanted there: take its layer out of those cameras' masks.
+        private static readonly System.Reflection.FieldInfo SecurityCamerasField =
+            HarmonyLib.AccessTools.Field(typeof(controlVideoVigilancia), "Camaras");
+        private readonly System.Collections.Generic.Dictionary<Camera, int> _securityCameraMasks = new System.Collections.Generic.Dictionary<Camera, int>();
+
+        private void HideLiquidFromSecurityCameras()
+        {
+            try
+            {
+                var system = controlVideoVigilancia.Instancia;
+                if (system == null || SecurityCamerasField == null || _liquidLayerMask == 0 || !LiquidStripSafe)
+                {
+                    return;
+                }
+                var cameras = SecurityCamerasField.GetValue(system) as Camera[];
+                if (cameras == null)
+                {
+                    return;
+                }
+                foreach (var camera in cameras)
+                {
+                    if (camera != null && (camera.cullingMask & _liquidLayerMask) != 0)
+                    {
+                        if (!_securityCameraMasks.ContainsKey(camera))
+                        {
+                            _securityCameraMasks[camera] = camera.cullingMask;
+                        }
+                        camera.cullingMask &= ~_liquidLayerMask;
+                        Plugin.Logger.LogInfo($"[cctv] water simulation hidden from security camera '{camera.name}'.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogThrottled("cctv-mask-error", $"Security camera mask error: {ex.Message}");
+            }
+        }
+
+        private void RestoreSecurityCameraMasks()
+        {
+            foreach (var pair in _securityCameraMasks)
+            {
+                if (pair.Key != null)
+                {
+                    pair.Key.cullingMask = pair.Value;
+                }
+            }
+            _securityCameraMasks.Clear();
         }
     }
 }

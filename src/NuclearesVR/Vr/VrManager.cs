@@ -572,6 +572,7 @@ namespace NuclearesVR.Vr
             _craneViewSource = null;
             RemoveMonitorMirror();
             RestoreMainMask();
+            RestoreSecurityCameraMasks();
             _eyeNear = _eyeFar = -1f;
             _appliedLayerDistance = -1f;
             if (_leftEyeCamera != null) Destroy(_leftEyeCamera.gameObject);
