@@ -15,7 +15,6 @@ namespace NuclearesVR.Vr
         private static readonly System.Reflection.FieldInfo CraneCameraField = AccessTools.Field(typeof(controlCrane), "Camara");
         private static readonly System.Reflection.FieldInfo CraneViewField = AccessTools.Field(typeof(controlCrane), "_posActual");
 
-        private Vector3 _headDeltaPos;
         private Transform _craneViewSource;
         private Quaternion _craneViewHeadRotation = Quaternion.identity;
 

@@ -199,6 +199,7 @@ namespace NuclearesVR.Vr
                 TryHitVirtualScreen(hand, out var menuPixel, out _))
             {
                 SetCursorPos(Mathf.RoundToInt(menuPixel.x), Mathf.RoundToInt(menuPixel.y));
+                _menuPixelX = menuPixel.x;
                 onMenu = true;
             }
 
@@ -246,7 +247,7 @@ namespace NuclearesVR.Vr
                 }
             }
 
-            UpdateInventorySpin(wantDown && allowed);
+            UpdateInventorySpin(wantDown && onMenu, _menuPixelX);
 
             if (wantDown != _mouseDown)
             {
@@ -322,6 +323,7 @@ namespace NuclearesVR.Vr
             }
         }
 
+        private float _menuPixelX;
         private bool _wasInCrane;
         private Vector2 _dragOut;
         private int _releaseHoldFrames;
@@ -408,7 +410,6 @@ namespace NuclearesVR.Vr
                 return;
             }
             _mainCamera.transform.SetPositionAndRotation(hand.WorldPos, hand.WorldRot);
-            AimInventoryCamera(hand.WorldPos, hand.WorldRot);
             _pointerPoseApplied = true;
             CenterCursor();
         }
@@ -416,7 +417,6 @@ namespace NuclearesVR.Vr
         /// <summary>Undo <see cref="ApplyPointerPose"/> before the game's scripts run.</summary>
         private void RestorePointerPose()
         {
-            RestoreInventoryCamera();
             if (!_pointerPoseApplied)
             {
                 return;
