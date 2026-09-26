@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -86,8 +87,76 @@ namespace NuclearesVR.Vr
                 Plugin.Logger.LogInfo($"[cctv] first render of '{__instance.name}': target={(target != null ? $"{target.width}x{target.height} aa{target.antiAliasing} depth{target.depth} {target.format}" : "none")}, " +
                                       $"mask={__instance.cullingMask}, path={__instance.actualRenderingPath}, hdr={__instance.allowHDR}, msaa={__instance.allowMSAA}");
                 Plugin.Logger.LogInfo($"[cctv]   {Describe(__instance)}");
+                try
+                {
+                    DescribeView(__instance);
+                }
+                catch (System.Exception ex)
+                {
+                    Plugin.Logger.LogWarning($"[cctv] view description failed: {ex.Message}");
+                }
             }
             return true;
+        }
+
+        /// <summary>What the camera is about to draw: renderers in its view grouped by shader, and lights in range.</summary>
+        private static void DescribeView(Camera camera)
+        {
+            var planes = GeometryUtility.CalculateFrustumPlanes(camera);
+            var position = camera.transform.position;
+            var far = camera.farClipPlane;
+            var shaders = new Dictionary<string, int>();
+            var meshes = 0;
+            long vertices = 0;
+            var skinned = 0;
+            var particles = 0;
+            foreach (var renderer in Object.FindObjectsOfType<Renderer>())
+            {
+                if (renderer == null || !renderer.enabled || renderer.forceRenderingOff || !renderer.gameObject.activeInHierarchy)
+                {
+                    continue;
+                }
+                if ((camera.cullingMask & (1 << renderer.gameObject.layer)) == 0)
+                {
+                    continue;
+                }
+                var bounds = renderer.bounds;
+                if (bounds.SqrDistance(position) > far * far || !GeometryUtility.TestPlanesAABB(planes, bounds))
+                {
+                    continue;
+                }
+                meshes++;
+                if (renderer is SkinnedMeshRenderer) skinned++;
+                if (renderer is ParticleSystemRenderer) particles++;
+                var material = renderer.sharedMaterial;
+                var name = material != null && material.shader != null ? material.shader.name : "(none)";
+                shaders[name] = shaders.TryGetValue(name, out var count) ? count + 1 : 1;
+                var filter = renderer.GetComponent<MeshFilter>();
+                if (filter != null && filter.sharedMesh != null) vertices += filter.sharedMesh.vertexCount;
+            }
+            Plugin.Logger.LogInfo($"[cctv]   view: {meshes} renderers ({skinned} skinned, {particles} particle), {vertices:N0} vertices; shaders: " +
+                                  string.Join(", ", shaders.OrderByDescending(pair => pair.Value).Take(14).Select(pair => $"{pair.Key} x{pair.Value}").ToArray()));
+
+            var lightCount = 0;
+            var shadowed = 0;
+            var typeCounts = new Dictionary<LightType, int>();
+            foreach (var light in Object.FindObjectsOfType<Light>())
+            {
+                if (light == null || !light.enabled || !light.gameObject.activeInHierarchy || light.intensity <= 0f)
+                {
+                    continue;
+                }
+                if (light.type != LightType.Directional && (light.transform.position - position).sqrMagnitude > (far + light.range) * (far + light.range))
+                {
+                    continue;
+                }
+                lightCount++;
+                if (light.shadows != LightShadows.None) shadowed++;
+                typeCounts[light.type] = typeCounts.TryGetValue(light.type, out var n) ? n + 1 : 1;
+            }
+            Plugin.Logger.LogInfo($"[cctv]   lights in range: {lightCount} ({shadowed} with shadows): " +
+                                  string.Join(", ", typeCounts.Select(pair => $"{pair.Key} x{pair.Value}").ToArray()) +
+                                  $"; pixelLightCount={QualitySettings.pixelLightCount}, shadowDistance={QualitySettings.shadowDistance:F0}, shadowResolution={QualitySettings.shadowResolution}, cascades={QualitySettings.shadowCascades}");
         }
 
         private static string Describe(Camera camera)
