@@ -81,10 +81,10 @@ namespace NuclearesVR
             MenuScreenHeight = Config.Bind("Controllers", "MenuScreenHeight", 0.8f,
                 new ConfigDescription("Height in metres of the floating screen used for the menus, dialogs and inventory. Smaller if its corners are cut off.",
                     new AcceptableValueRange<float>(0.3f, 2.0f)));
-            MenuScreenDown = Config.Bind("Controllers", "MenuScreenDown", 0.12f,
+            MenuScreenDown = Config.Bind("Controllers", "MenuScreenDown", 0.3f,
                 new ConfigDescription("How far below eye level, in metres, the centre of that floating screen sits. Higher = lower screen.",
                     new AcceptableValueRange<float>(-0.5f, 0.8f)));
-            MenuScreenDistance = Config.Bind("Controllers", "MenuScreenDistance", 1.5f,
+            MenuScreenDistance = Config.Bind("Controllers", "MenuScreenDistance", 1.0f,
                 new ConfigDescription("How far in front of you, in metres, that floating screen is. Its picture stays the same apparent size if you change the height by the same proportion.",
                     new AcceptableValueRange<float>(0.5f, 4.0f)));
             LiquidInVr = Config.Bind("Graphics", "LiquidSimulationInVr", true,

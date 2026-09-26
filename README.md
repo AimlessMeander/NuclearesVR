@@ -8,28 +8,34 @@ them to textures, and submits those to SteamVR's compositor itself.
 
 ## Status
 
-Working, tested on hardware (Quest-class headset over Steam Link / SteamVR):
+Working, tested on hardware (Quest 3 over Steam Link / SteamVR, RTX 4090). The game runs at about 90 fps.
 
 - Stereo rendering and 6DoF head tracking (orientation and position).
 - VR only runs while a game is loaded: the start menu is a normal 2D window, VR starts on loading a
   game and shuts down cleanly on exit to the menu (repeatable; see "Startup and shutdown").
-- Pause menu and dialogs, via a "virtual screen" (see below).
-- Head tracking keeps working while the tablet / focus modes are active.
-- Mouse pointer visible in the headset (arrow on the virtual screen; marker in the world for the
-  tablet and ALT interactive mode).
-- Skybox, trains, torch, red alarm lights.
+- The monitor window shows the headset's view (setting `MonitorView`).
+- **Menus on a floating "virtual screen"** (see below): the pause menu, confirmation dialogs (for example putting
+  on the hazmat suit), the inventory and the main menu. Its size and position are settings (`MenuScreen...`).
+  The tutorial's instruction box floats below eye level, and the gauge information panel shows in front of you.
+- In-game monitor text (was the big open problem): see "The monitor problem" below.
+- Tablet, including all its pages, and the ALT / focus modes.
+- **Motion controllers** (Quest 3 tested; other controllers via SteamVR's binding screen):
+  - A laser per hand; the last hand to pull its trigger is the active pointer. Trigger clicks; hold the
+    trigger and move the hand to turn dials, move sliders and valves, and step the 3-position switches.
+  - Left stick walks (in the direction the head faces), right stick turns smoothly.
+  - Grip is the right mouse button (component information, switch covers, zoom).
+  - Buttons map to keys (defaults: A flashlight, B tablet, X jump and Enter, Y menu, left stick click run,
+    right stick click Geiger counter, both stick clicks together the inventory). Holding both triggers for
+    2 seconds recentres the view (the End key also does).
+- **Crane seat:** the buttons change (A grabber, B laser sight, Y next camera, X leave, right stick up/down moves the
+  grabber). The crane's outside camera views are shown in the headset.
+- **Inventory:** the game's ring of 3D crates and its 2D buttons show on the virtual screen; dragging spins the ring.
 
-Monitor text (was the big open problem) is fixed: see "The monitor problem" below.
-
-Motion controllers (Quest 3 tested; other controllers via SteamVR's binding screen):
-- A laser per hand; the last hand to pull its trigger is the active pointer. Trigger clicks; hold the
-  trigger and move the hand to turn dials and move sliders and valves.
-- Left stick walks (in the direction the head faces), right stick turns smoothly.
-- Buttons map to keys (defaults: A flashlight, B tablet, Y menu, left stick click run).
-- On the pause menu the controller is the mouse cursor on the virtual screen.
-
-Not done: pointing at the tablet's own screen has not been specifically tested;
-differences (cosmetic).
+Known issues:
+- **CCTV cameras** are switched off in VR (the game crashed the graphics driver): see the last section.
+- The reactor pool's water can look different in each eye, and is drawn over the lasers and menu (the water
+  simulation is a separate pass that ignores objects the mod adds).
+- The inventory is a flat picture, not 3D.
 
 ## Build and install
 
@@ -113,8 +119,8 @@ smoothing snaps a frame that is a little over budget to exactly half rate (45 at
   Turned off while VR runs, restored afterwards.
 - **The cost is almost entirely the two eye views** (about 1.5 ms per eye in a light spot, 10 ms in a heavy
   one; everything else in the game is about 1.5 ms). It was independent of resolution, MSAA, water,
-  volumetric lights and pixel lights: it is vertex/draw-call bound, so lower resolution only made it blurry.
-  Dynamic resolution was built and is off by default for that reason.
+  volumetric lights and pixel lights: it is vertex/draw-call bound, so lower resolution only made it blurry
+  (an adaptive-resolution feature was built and removed for that reason).
 - **The game's own camera** rendered the whole scene again for the monitor. It now draws nothing in VR
   (every layer's culling distance set to 2 cm, plus its heavy effects switched off), and the game window shows
   the left eye instead (a command buffer on that camera, before the UI overlay). Do NOT empty its culling mask:
@@ -154,9 +160,26 @@ smoothing snaps a frame that is a little over budget to exactly half rate (45 at
   angle is removed from the head mapping (`_yawAdjust`) so the view does not change.
 - **Menu:** the ray is intersected with the virtual screen quad and converted to a desktop pixel for the
   OS cursor.
-- Config: `BepInEx/config/com.mjh.nuclearesvr.cfg` (button-to-key mapping, turn speed, drag scale, ...).
+- **Sticky drag:** the game's 3-position switches step one way or the other on ANY change of the horizontal
+  mouse position, so the hand offset trails the hand by the dead zone (it only follows once the hand is more than
+  1.5 cm past the last value), and the real cursor position is replaced by "window centre + offset" while dragging
+  (the game locks and unlocks the cursor around switch steps, which moves the real one).
+- **Crane:** while the player is in the crane seat (`controlCrane._jugador`), buttons send the crane's own keys
+  (Z, F, Space, X) and the right stick sends the game's Up/Down keys. An outside camera view puts the headset at
+  the crane's camera (re-applied just before each eye renders). Body-turning towards the head and the lasers are off.
+- **Dialogs and the tutorial:** confirmation dialogs and pop-up help (`Interface.IsHayMenuEnPantalla`) and the
+  inventory get the virtual screen; the tutorial box (`Interface.CAvisos.Tutorial`) is a panel cropped from the
+  same screen capture, like the information panel.
+- **Inventory:** it uses a dedicated camera (`controlCamaras.CamMochila`, layers 6 and 9) for its 3D crates, which
+  are a real object in the room, so the eye cameras stop drawing those layers while it is open and the flat
+  capture (which still contains them) is shown on the virtual screen. Dragging feeds the "Mouse X" axis.
+- **Both stick clicks / both triggers:** the inventory key is pulsed when the second stick joins; the right stick's
+  key (Geiger) is pulsed on release so the two-stick press does not also fire it.
+- Config: `BepInEx/config/com.mjh.nuclearesvr.cfg` (button-to-key mapping, turn speed, drag scale, menu screen
+  size and position, performance settings, ...).
 
-Ideas not done: haptics, snap turning, a comfort vignette, hands/arms model, tablet-specific pointing.
+Ideas not done: haptics, snap turning, a comfort vignette, hands/arms model, tablet-specific pointing, a 3D inventory,
+Steam Frame default bindings (only Oculus Touch defaults are written).
 
 ## Project layout
 
@@ -165,9 +188,12 @@ src/NuclearesVR/            plugin source (partial class VrManager split by conc
   Plugin.cs                  BepInEx entry point
   Vr/OpenVR.cs               Valve's official C# bindings (vendored)
   Vr/VrMath.cs               OpenVR <-> Unity conversions
-  Vr/VrManager*.cs           stereo rendering, tracking, virtual screen, pointer, effects,
-                             lighting workarounds, diagnostics and experiments
-scripts/setup-dependencies.ps1
+  Vr/VrManager*.cs           stereo rendering, tracking, virtual screen, pointing and input, crane, inventory,
+                             performance (culling, shadows, far objects), water and monitor workarounds, diagnostics
+  Vr/VrKeys.cs               Harmony patches that feed controller input into the game's Input reads
+  Vr/VrWaterPatches.cs       shared water reflection; Vr/VrSecurityPatches.cs blocks the CCTV cameras
+docs/CCTV-INVESTIGATION.md   everything tried on the CCTV crash
+scripts/setup-dependencies.ps1  scripts/make-release.ps1 (builds dist/NuclearesVR-<version>.zip)
 reference/  lib/  downloads/ gitignored (game code, game/BepInEx DLLs, downloaded archives)
 ```
 

@@ -92,8 +92,8 @@ SETTINGS
                           often, set this to false.
    DisableVsyncInVr ..... Turns the game's VSync off while VR runs (default on).
    MenuScreenHeight ..... Size of the floating screen for menus, dialogs and the inventory (metres tall, 0.8).
-   MenuScreenDown ....... How far below eye level that screen sits (metres, 0.12).
-   MenuScreenDistance ... How far in front of you that screen is (metres, 1.5).
+   MenuScreenDown ....... How far below eye level that screen sits (metres, 0.3).
+   MenuScreenDistance ... How far in front of you that screen is (metres, 1.0).
    TurnSpeed ............ How fast the right stick turns you.
    WalkTowardsHead ...... true: walk where you look. false: walk where your body faces.
    InstantActivation .... true: clicks skip the hand animation, like holding Shift.
@@ -101,6 +101,13 @@ SETTINGS
    [Buttons] section .... Which keyboard key each controller button presses.
 
  Close the game before editing, and start it again afterwards.
+
+KNOWN LIMITS
+------------
+ * The in-game CCTV screens stay black in VR (switching them on crashed the game).
+ * The inventory, menus and dialogs show on a floating flat screen, not in 3D.
+ * The reactor pool's water can look slightly different in each eye, and it is drawn over the laser
+   pointers and the menu screen when they are in front of it.
 
 IF SOMETHING GOES WRONG
 -----------------------
