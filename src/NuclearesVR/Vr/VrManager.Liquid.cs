@@ -28,6 +28,36 @@ namespace NuclearesVR.Vr
         // on one of these, hiding it would blank the monitor view and the menus.
         private const int NeverStripLayers = (1 << 0) | (1 << 5);
 
+        // The simulation skips a camera outright when its own IsCameraFiltered says so. Make that say yes
+        // for the CCTV cameras, so it never registers them or touches its shared textures for them.
+        private static void PatchLiquidCameraFilter(Type liquidType)
+        {
+            try
+            {
+                var filter = HarmonyLib.AccessTools.Method(liquidType, "IsCameraFiltered", new[] { typeof(Camera) });
+                if (filter == null)
+                {
+                    Plugin.Logger.LogWarning("Water simulation: IsCameraFiltered not found - CCTV cameras are not excluded.");
+                    return;
+                }
+                var harmony = new HarmonyLib.Harmony(Plugin.Guid + ".liquidfilter");
+                harmony.Patch(filter, postfix: new HarmonyLib.HarmonyMethod(typeof(VrManager), nameof(LiquidFilterPostfix)));
+                Plugin.Logger.LogInfo("Water simulation: CCTV cameras are excluded.");
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogError($"Water simulation camera filter patch failed: {ex}");
+            }
+        }
+
+        private static void LiquidFilterPostfix(Camera cam, ref bool __result)
+        {
+            if (!__result && VrRunning && cam != null && cam.name.StartsWith("VV_Camera"))
+            {
+                __result = true;
+            }
+        }
+
         private bool LiquidStripSafe => (_liquidLayerMask & NeverStripLayers) == 0;
 
         /// <summary>The eye cameras are ordinary cameras (the simulation draws for them) unless the setting is off or stripping is not safe.</summary>
@@ -55,6 +85,10 @@ namespace NuclearesVR.Vr
                 if (_liquidType == null)
                 {
                     Plugin.Logger.LogInfo("Water simulation type not found - nothing to work around.");
+                }
+                else
+                {
+                    PatchLiquidCameraFilter(_liquidType);
                 }
             }
             if (_liquidType == null)
