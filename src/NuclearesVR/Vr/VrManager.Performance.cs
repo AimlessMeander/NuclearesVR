@@ -15,7 +15,6 @@ namespace NuclearesVR.Vr
     /// </summary>
     internal partial class VrManager
     {
-        private double _waitGetPosesMsSum, _waitGetPosesMsMax;
         private int _originalVSync = -1;
         private float _perfWindowStart;
         private int _perfFrames;
@@ -96,12 +95,7 @@ namespace NuclearesVR.Vr
             }
 
             var fps = _perfFrames / elapsed;
-            var waitAverage = _perfFrames > 0 ? _waitGetPosesMsSum / _perfFrames : 0.0;
-            var waitText = $" | WaitGetPoses avg {waitAverage:F1} ms, max {_waitGetPosesMsMax:F0} ms | texture memory {Texture.currentTextureMemory / 1048576UL} MB, " +
-                           $"render textures {Resources.FindObjectsOfTypeAll<RenderTexture>().Length}, GPU {SystemInfo.graphicsMemorySize} MB";
-            _waitGetPosesMsSum = 0;
-            _waitGetPosesMsMax = 0;
-            var text = $"[perf] game {fps:F1} fps ({1000f / Mathf.Max(fps, 0.01f):F1} ms/frame), vsync={QualitySettings.vSyncCount}, far small objects hidden {_farHiddenCount}/{_farCandidates.Length}" + waitText;
+            var text = $"[perf] game {fps:F1} fps ({1000f / Mathf.Max(fps, 0.01f):F1} ms/frame), vsync={QualitySettings.vSyncCount}, far small objects hidden {_farHiddenCount}/{_farCandidates.Length}";
             try
             {
                 var error = ETrackedPropertyError.TrackedProp_Success;

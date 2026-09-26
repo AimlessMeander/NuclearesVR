@@ -1,43 +1,27 @@
-using System.Collections.Generic;
-using System.Linq;
 using HarmonyLib;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 namespace NuclearesVR.Vr
 {
     /// <summary>
-    /// The CCTV system draws its cameras by hand (Camera.Render into small textures). Switching it on in
-    /// VR crashed the graphics driver, so this logs each of those draws (the last line before a crash
-    /// shows how far it got) and can switch them off while VR runs (setting SecurityCameras).
+    /// The game's CCTV system draws its twelve cameras by hand (Camera.Render into small textures). In VR,
+    /// switching it on froze or crashed the game (the graphics driver failed while those cameras drew beside
+    /// the headset views) and no reliable fix was found, so those draws are skipped while VR runs and the
+    /// CCTV screens stay black. See docs/CCTV-INVESTIGATION.md for everything that was tried.
     /// </summary>
     internal static class VrSecurityPatches
     {
-        private static readonly HashSet<string> Logged = new HashSet<string>();
-
         internal static void Apply(Harmony harmony)
         {
             try
             {
-                var original = AccessTools.Method(typeof(Camera), "Render", new System.Type[0]);
-                if (original == null)
+                var render = AccessTools.Method(typeof(Camera), "Render", new System.Type[0]);
+                if (render == null)
                 {
-                    Plugin.Logger.LogWarning("Security camera patch: Camera.Render not found.");
+                    Plugin.Logger.LogWarning("Security camera patch: Camera.Render not found - the CCTV may crash the game in VR.");
                     return;
                 }
-                var refresh = AccessTools.Method(typeof(controlVideoVigilancia), "GetRefresco");
-                if (refresh != null)
-                {
-                    harmony.Patch(refresh, postfix: new HarmonyMethod(typeof(VrSecurityPatches), nameof(RefreshPostfix)));
-                }
-                var plane = AccessTools.Method(typeof(ControlReservorioDeAgua), "SetPlanoDeAguaVisible");
-                if (plane != null)
-                {
-                    harmony.Patch(plane, prefix: new HarmonyMethod(typeof(VrSecurityPatches), nameof(WaterPlanePrefix)));
-                }
-                harmony.Patch(original, prefix: new HarmonyMethod(typeof(VrSecurityPatches), nameof(RenderPrefix)),
-                    postfix: new HarmonyMethod(typeof(VrSecurityPatches), nameof(RenderPostfix)),
-                    finalizer: new HarmonyMethod(typeof(VrSecurityPatches), nameof(RenderFinalizer)));
+                harmony.Patch(render, prefix: new HarmonyMethod(typeof(VrSecurityPatches), nameof(RenderPrefix)));
             }
             catch (System.Exception ex)
             {
@@ -45,244 +29,13 @@ namespace NuclearesVR.Vr
             }
         }
 
-        /// <summary>The CCTV switches a water plane on in the reactor pool for the core camera; skipped while VR runs unless allowed.</summary>
-        private static bool WaterPlanePrefix(bool valor)
-        {
-            return !(VrManager.VrRunning && valor && !Plugin.SecurityCameraWaterPlane.Value);
-        }
-
-        private static int _renderLogCount, _finishedCount;
-        private static readonly HashSet<string> Finished = new HashSet<string>();
-
-        /// <summary>How long the game waits between drawing the CCTV cameras: never less than the setting while VR runs.</summary>
-        private static void RefreshPostfix(ref float __result)
-        {
-            if (VrManager.VrRunning)
-            {
-                __result = Mathf.Max(__result, Plugin.SecurityCameraRefreshSeconds.Value);
-            }
-        }
-
-        private static bool _cheapApplied;
-        private static float _savedShadowDistance, _savedLodBias;
-
-        /// <summary>Runs even if the draw throws: puts the shadow and detail settings back, for the CCTV camera's own draw only.</summary>
-        private static System.Exception RenderFinalizer(Camera __instance, System.Exception __exception)
-        {
-            if (_cheapApplied && __instance != null && __instance.name.StartsWith("VV_Camera"))
-            {
-                _cheapApplied = false;
-                QualitySettings.shadowDistance = _savedShadowDistance;
-                QualitySettings.lodBias = _savedLodBias;
-            }
-            return __exception;
-        }
-
-        private static void RenderPostfix(Camera __instance)
-        {
-            if (VrManager.VrRunning && __instance != null && __instance.name.StartsWith("VV_Camera") && _renderLogCount <= 12 && _finishedCount < 12)
-            {
-                _finishedCount++;
-                Plugin.Logger.LogInfo($"[cctv] render #{_finishedCount} of '{__instance.name}' finished at t={Time.realtimeSinceStartup:F2}");
-            }
-            if (VrManager.VrRunning && __instance != null && __instance.name.StartsWith("VV_Camera") && Finished.Add(__instance.name))
-            {
-                Plugin.Logger.LogInfo($"[cctv] first render of '{__instance.name}' finished.");
-            }
-        }
-
         private static bool RenderPrefix(Camera __instance)
         {
-            if (!VrManager.VrRunning || __instance == null || !__instance.name.StartsWith("VV_Camera"))
-            {
-                return true;
-            }
-            if (!Plugin.SecurityCameras.Value)
+            if (VrManager.VrRunning && !Plugin.SecurityCameras.Value && __instance != null && __instance.name.StartsWith("VV_Camera"))
             {
                 return false;
-            }
-            var skipped = Plugin.SecurityCamerasSkipped.Value;
-            if (!string.IsNullOrEmpty(skipped) && skipped.IndexOf(__instance.name, System.StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                return false;
-            }
-            if (Plugin.SecurityCameraCheapRender.Value)
-            {
-                // Just for this camera's draw: no shadows and lower-detail models. A view of the turbine
-                // hall holds about 20 million vertices, and every shadow-casting light draws them again.
-                _savedShadowDistance = QualitySettings.shadowDistance;
-                _savedLodBias = QualitySettings.lodBias;
-                _cheapApplied = true;
-                QualitySettings.shadowDistance = 0f;
-                QualitySettings.lodBias = Mathf.Min(_savedLodBias, 0.4f);
-            }
-            if (_renderLogCount < 12)
-            {
-                _renderLogCount++;
-                Plugin.Logger.LogInfo($"[cctv] render #{_renderLogCount}: '{__instance.name}' at frame {Time.frameCount}, t={Time.realtimeSinceStartup:F2}");
-            }
-            if (Logged.Add(__instance.name))
-            {
-                try
-                {
-                    FitViewToBudget(__instance);
-                }
-                catch (System.Exception ex)
-                {
-                    Plugin.Logger.LogWarning($"[cctv] view budget failed: {ex.Message}");
-                }
-                var target = __instance.targetTexture;
-                Plugin.Logger.LogInfo($"[cctv] first render of '{__instance.name}': target={(target != null ? $"{target.width}x{target.height} aa{target.antiAliasing} depth{target.depth} {target.format}" : "none")}, " +
-                                      $"mask={__instance.cullingMask}, path={__instance.actualRenderingPath}, hdr={__instance.allowHDR}, msaa={__instance.allowMSAA}");
-                Plugin.Logger.LogInfo($"[cctv]   {Describe(__instance)}");
-                try
-                {
-                    DescribeView(__instance);
-                }
-                catch (System.Exception ex)
-                {
-                    Plugin.Logger.LogWarning($"[cctv] view description failed: {ex.Message}");
-                }
             }
             return true;
-        }
-
-        /// <summary>
-        /// Some rooms hold tens of millions of vertices in view (the internal supply room: 44.8 million),
-        /// and drawing that every second alongside the headset views froze or crashed the game. Find the
-        /// longest view distance whose contents stay within the vertex budget and use that.
-        /// </summary>
-        private static void FitViewToBudget(Camera camera)
-        {
-            var budget = (long)Plugin.SecurityCameraMaxVertices.Value * 1000000L;
-            if (budget <= 0)
-            {
-                return;
-            }
-            var position = camera.transform.position;
-            var eligible = new List<KeyValuePair<Bounds, int>>();
-            foreach (var renderer in Object.FindObjectsOfType<Renderer>())
-            {
-                if (renderer == null || !renderer.enabled || renderer.forceRenderingOff || !renderer.gameObject.activeInHierarchy ||
-                    (camera.cullingMask & (1 << renderer.gameObject.layer)) == 0)
-                {
-                    continue;
-                }
-                var filter = renderer.GetComponent<MeshFilter>();
-                var count = filter != null && filter.sharedMesh != null ? filter.sharedMesh.vertexCount : 0;
-                if (count > 0)
-                {
-                    eligible.Add(new KeyValuePair<Bounds, int>(renderer.bounds, count));
-                }
-            }
-
-            var startFar = camera.farClipPlane;
-            var chosen = 12f;
-            long chosenVertices = 0;
-            foreach (var far in new[] { startFar, 100f, 70f, 50f, 35f, 25f, 18f, 12f })
-            {
-                if (far > startFar)
-                {
-                    continue;
-                }
-                camera.farClipPlane = far;
-                var planes = GeometryUtility.CalculateFrustumPlanes(camera);
-                long vertices = 0;
-                foreach (var pair in eligible)
-                {
-                    if (pair.Key.SqrDistance(position) <= far * far && GeometryUtility.TestPlanesAABB(planes, pair.Key))
-                    {
-                        vertices += pair.Value;
-                    }
-                }
-                chosen = far;
-                chosenVertices = vertices;
-                if (vertices <= budget)
-                {
-                    break;
-                }
-            }
-            camera.farClipPlane = chosen;
-            Plugin.Logger.LogInfo($"[cctv] '{camera.name}' view distance set to {chosen:F0} m (was {startFar:F0}): about {chosenVertices:N0} vertices in view, budget {budget:N0}.");
-        }
-
-        /// <summary>What the camera is about to draw: renderers in its view grouped by shader, and lights in range.</summary>
-        private static void DescribeView(Camera camera)
-        {
-            var planes = GeometryUtility.CalculateFrustumPlanes(camera);
-            var position = camera.transform.position;
-            var far = camera.farClipPlane;
-            var shaders = new Dictionary<string, int>();
-            var meshes = 0;
-            long vertices = 0;
-            var skinned = 0;
-            var particles = 0;
-            foreach (var renderer in Object.FindObjectsOfType<Renderer>())
-            {
-                if (renderer == null || !renderer.enabled || renderer.forceRenderingOff || !renderer.gameObject.activeInHierarchy)
-                {
-                    continue;
-                }
-                if ((camera.cullingMask & (1 << renderer.gameObject.layer)) == 0)
-                {
-                    continue;
-                }
-                var bounds = renderer.bounds;
-                if (bounds.SqrDistance(position) > far * far || !GeometryUtility.TestPlanesAABB(planes, bounds))
-                {
-                    continue;
-                }
-                meshes++;
-                if (renderer is SkinnedMeshRenderer) skinned++;
-                if (renderer is ParticleSystemRenderer) particles++;
-                var material = renderer.sharedMaterial;
-                var name = material != null && material.shader != null ? material.shader.name : "(none)";
-                shaders[name] = shaders.TryGetValue(name, out var count) ? count + 1 : 1;
-                var filter = renderer.GetComponent<MeshFilter>();
-                if (filter != null && filter.sharedMesh != null) vertices += filter.sharedMesh.vertexCount;
-            }
-            Plugin.Logger.LogInfo($"[cctv]   view: {meshes} renderers ({skinned} skinned, {particles} particle), {vertices:N0} vertices; shaders: " +
-                                  string.Join(", ", shaders.OrderByDescending(pair => pair.Value).Take(14).Select(pair => $"{pair.Key} x{pair.Value}").ToArray()));
-
-            var lightCount = 0;
-            var shadowed = 0;
-            var typeCounts = new Dictionary<LightType, int>();
-            foreach (var light in Object.FindObjectsOfType<Light>())
-            {
-                if (light == null || !light.enabled || !light.gameObject.activeInHierarchy || light.intensity <= 0f)
-                {
-                    continue;
-                }
-                if (light.type != LightType.Directional && (light.transform.position - position).sqrMagnitude > (far + light.range) * (far + light.range))
-                {
-                    continue;
-                }
-                lightCount++;
-                if (light.shadows != LightShadows.None) shadowed++;
-                typeCounts[light.type] = typeCounts.TryGetValue(light.type, out var n) ? n + 1 : 1;
-            }
-            Plugin.Logger.LogInfo($"[cctv]   lights in range: {lightCount} ({shadowed} with shadows): " +
-                                  string.Join(", ", typeCounts.Select(pair => $"{pair.Key} x{pair.Value}").ToArray()) +
-                                  $"; pixelLightCount={QualitySettings.pixelLightCount}, shadowDistance={QualitySettings.shadowDistance:F0}, shadowResolution={QualitySettings.shadowResolution}, cascades={QualitySettings.shadowCascades}");
-        }
-
-        private static string Describe(Camera camera)
-        {
-            var parts = new List<string>();
-            foreach (var component in camera.GetComponents<Component>())
-            {
-                if (component == null) continue;
-                var behaviour = component as Behaviour;
-                parts.Add(component.GetType().Name + (behaviour != null && !behaviour.enabled ? "(off)" : ""));
-            }
-            var buffers = new List<string>();
-            foreach (CameraEvent cameraEvent in System.Enum.GetValues(typeof(CameraEvent)))
-            {
-                var count = camera.GetCommandBuffers(cameraEvent).Length;
-                if (count > 0) buffers.Add(cameraEvent + "x" + count);
-            }
-            return $"components: {string.Join(", ", parts.ToArray())}; command buffers: {(buffers.Count > 0 ? string.Join(", ", buffers.ToArray()) : "none")}; " +
-                   $"depthTextureMode={camera.depthTextureMode}, type={camera.cameraType}, pixel={camera.pixelWidth}x{camera.pixelHeight}, fov={camera.fieldOfView:F0}, far={camera.farClipPlane:F0}";
         }
     }
 }

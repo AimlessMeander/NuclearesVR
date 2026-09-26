@@ -174,10 +174,6 @@ reference/  lib/  downloads/ gitignored (game code, game/BepInEx DLLs, downloade
 ## Known issue: CCTV cameras in VR
 
 Switching the in-game CCTV on froze or crashed the game in VR (the graphics driver failed while the CCTV
-cameras drew beside the two headset views; Unity logged `D3D11 ... error 0x887a0005`, device removed). It does
-not happen in 2D. Many attempts did not give a reliable fix (water simulation exclusion, no post-processing,
-Forward drawing, no shadows, lower detail, slower refresh, view-distance budget per camera). The crash was not
-consistent with vertex counts or with any one setting. So `SecurityCameras` defaults to false: the game does not
-draw those cameras in VR and the CCTV screens stay black. The other `SecurityCamera*` settings remain for
-experiments (they only apply when `SecurityCameras = true`). The investigation is in git history (commits from
-`511ad2a` to `14cb5cd`), and `[cctv]` lines in the log describe each camera when it is enabled.
+cameras drew beside the two headset views), though not in 2D. Many attempts did not give a reliable fix, so
+`SecurityCameras` defaults to false: the game does not draw those cameras in VR and the CCTV screens stay black.
+Everything that was tried and learned is in [docs/CCTV-INVESTIGATION.md](docs/CCTV-INVESTIGATION.md).

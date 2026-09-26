@@ -38,10 +38,7 @@ namespace NuclearesVR
         internal static ConfigEntry<bool> LiquidInVr;
         internal static ConfigEntry<bool> DisableVsyncInVr;
         internal static ConfigEntry<MonitorViewMode> MonitorView;
-        internal static ConfigEntry<bool> SecurityCameras, SecurityCameraWaterPlane, SecurityCameraReflectionType, SecurityCameraPostProcessing, SecurityCameraLightMode, SecurityCameraWater, SecurityCameraCheapRender;
-        internal static ConfigEntry<string> SecurityCamerasSkipped;
-        internal static ConfigEntry<float> SecurityCameraRefreshSeconds;
-        internal static ConfigEntry<int> SecurityCameraMaxVertices;
+        internal static ConfigEntry<bool> SecurityCameras;
         internal static ConfigEntry<bool> EyeOcclusionCulling;
         internal static ConfigEntry<float> EyeDefaultLayerDistance;
         internal static ConfigEntry<float> VrShadowDistance;
@@ -110,29 +107,9 @@ namespace NuclearesVR
                 new ConfigDescription("What counts as a small object for FarSmallObjectDistance: an object whose bounding box is smaller than this many metres across (corner to corner).",
                     new AcceptableValueRange<float>(1f, 60f)));
             SecurityCameras = Config.Bind("Graphics", "SecurityCameras", false,
-                "Whether the game draws the CCTV system's cameras while VR runs. Default false: the CCTV screens stay black in VR. " +
-                "Switching the CCTV on froze or crashed the game (the graphics card fails while the extra cameras draw beside the headset views), and no reliable fix was found. " +
-                "true = let them draw (experimental; the other SecurityCamera... settings then reduce the load).");
-            SecurityCameraWaterPlane = Config.Bind("Graphics", "SecurityCameraWaterPlane", false,
-                "The CCTV switches on a plain water surface in the reactor pool while it draws the core camera. false = not in VR (that view shows an empty pool). Part of the CCTV crash investigation.");
-            SecurityCameraReflectionType = Config.Bind("Graphics", "SecurityCameraReflectionType", false,
-                "Marks the CCTV cameras as reflection-type cameras so the water simulation ignores them completely. Part of the CCTV crash investigation; off because it is probably not needed.");
-            SecurityCameraPostProcessing = Config.Bind("Graphics", "SecurityCameraPostProcessing", false,
-                "false = the CCTV cameras are drawn without post-processing (ambient occlusion etc.) while VR runs. Part of the CCTV crash investigation.");
-            SecurityCameraLightMode = Config.Bind("Graphics", "SecurityCameraLightMode", true,
-                "Draws the CCTV cameras more cheaply while VR runs: Forward instead of Deferred, view distance capped at 150 m, no shadows from their extra light. Part of the CCTV crash investigation.");
-            SecurityCameraWater = Config.Bind("Graphics", "SecurityCameraWater", false,
-                "false = the CCTV cameras do not draw the game's water planes in VR (each one makes the game render an extra mirrored copy of the scene). Part of the CCTV crash investigation.");
-            SecurityCameraCheapRender = Config.Bind("Graphics", "SecurityCameraCheapRender", true,
-                "While the game draws a CCTV camera in VR: no shadows and lower-detail models for that draw only. Some rooms (the turbine hall) hold about 20 million vertices in view, which overloaded the graphics card.");
-            SecurityCameraRefreshSeconds = Config.Bind("Graphics", "SecurityCameraRefreshSeconds", 1.5f,
-                new ConfigDescription("Minimum time between the game drawing one CCTV camera picture and the next while VR runs (the game's own is about 0.3 s). Longer is easier on the graphics card, but the pictures update less often.",
-                    new AcceptableValueRange<float>(0.2f, 10f)));
-            SecurityCameraMaxVertices = Config.Bind("Graphics", "SecurityCameraMaxVertices", 8,
-                new ConfigDescription("The most geometry, in millions of vertices, a CCTV camera may draw in VR. Each camera's view distance is shortened until its view fits (some rooms hold 20-45 million and froze or crashed the game). 0 = no limit.",
-                    new AcceptableValueRange<int>(0, 100)));
-            SecurityCamerasSkipped = Config.Bind("Graphics", "SecurityCamerasSkipped", "",
-                "Names of CCTV cameras the game must not draw in VR, for example: VV_Camera_CORE_ROOM,VV_Camera_CORE_INSIDE (their screens stay black). Part of the CCTV crash investigation.");
+                "Whether the game draws the CCTV system's cameras while VR runs. false (default) = the CCTV screens stay black in VR. " +
+                "Switching the CCTV on freezes or crashes the game in VR (the graphics driver fails when those extra cameras draw beside the headset views); no reliable fix has been found. " +
+                "true = let the game draw them anyway (likely to crash).");
             ShareWaterReflection = Config.Bind("Graphics", "ShareWaterReflection", true,
                 "The game's water planes render an extra mirrored copy of the scene for every camera that sees them; with two eyes that made looking at the reactor pool very expensive. " +
                 "true = the right eye reuses the left eye's reflection, and the reflection is refreshed only every few frames.");
