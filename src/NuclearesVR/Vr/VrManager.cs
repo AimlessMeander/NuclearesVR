@@ -812,7 +812,7 @@ namespace NuclearesVR.Vr
         {
             eye.clearFlags = _mainCamera.clearFlags;
             eye.backgroundColor = _mainCamera.backgroundColor;
-            eye.cullingMask = (_gameMask | (LiquidVisibleInEyes ? _liquidLayerMask : 0));
+            eye.cullingMask = (_gameMask | (LiquidVisibleInEyes ? _liquidLayerMask : 0) | _inventoryMask);
             eye.renderingPath = ForwardOnEyes ? RenderingPath.Forward : _mainCamera.renderingPath;
             eye.allowMSAA = true; // the main camera may have it off (Deferred cannot use it); the eyes are Forward
             eye.useOcclusionCulling = Plugin.EyeOcclusionCulling.Value || _benchOcclusion;
@@ -867,6 +867,7 @@ namespace NuclearesVR.Vr
 
             try
             {
+                UpdateInventoryState();
                 SyncEyeCameraSettings();
 
                 // WaitGetPoses must run every frame we also Submit, no matter
@@ -934,7 +935,9 @@ namespace NuclearesVR.Vr
                 // Update (see the comment on _savedBaseRotation) - remember it
                 // exactly, then add our head offset.
                 _savedBaseRotation = _mainCamera.transform.localRotation;
-                var craneCamera = CraneOutsideCamera();
+                _headDeltaPos = deltaPos;
+                var inventoryCamera = InventoryCamera();
+                var craneCamera = CraneOutsideCamera() ?? (inventoryCamera != null ? inventoryCamera.transform : null);
                 _craneViewSource = craneCamera;
                 _craneViewHeadRotation = deltaRot;
                 if (craneCamera != null)

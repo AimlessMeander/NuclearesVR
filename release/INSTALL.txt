@@ -52,6 +52,9 @@ CONTROLS (Quest / Touch layout)
    Y .................... Menu (pause)
    Left stick click ..... Run
    Right stick click .... Geiger counter
+   Both stick clicks .... Inventory (press both stick clicks together; do it again to close). Point at a
+                          crate and pull the trigger to open it; hold the trigger and move your hand sideways
+                          to spin the ring of crates.
    In the crane seat the buttons change:
      Left stick ......... Drive the crane        Right stick fwd/back ... Grabber up / down
      A .................. Open / close grabber   B ...................... Laser sight

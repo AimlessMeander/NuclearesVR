@@ -22,6 +22,9 @@ namespace NuclearesVR.Vr
         /// <summary>Extra "Mouse X" the game's mouse look sees, from the right stick.</summary>
         internal static float TurnInput;
 
+        /// <summary>Extra "Mouse X" from hand movement while dragging in the inventory (spins its ring).</summary>
+        internal static float SpinInput;
+
         /// <summary>
         /// Added to Input.mousePosition while the trigger is held: how far the hand has moved since
         /// the click, in pixels. Dials, sliders and valves read the mouse moving while dragged.
@@ -105,6 +108,7 @@ namespace NuclearesVR.Vr
             DownFrame.Clear();
             UpFrame.Clear();
             TurnInput = 0f;
+            SpinInput = 0f;
             AimValid = false;
             MouseOffset = Vector2.zero;
             Dragging = false;
@@ -181,9 +185,9 @@ namespace NuclearesVR.Vr
 
         private static void GetAxisPostfix(string axisName, ref float __result)
         {
-            if (VrKeys.TurnInput != 0f && axisName == "Mouse X")
+            if (axisName == "Mouse X" && (VrKeys.TurnInput != 0f || VrKeys.SpinInput != 0f))
             {
-                __result += VrKeys.TurnInput;
+                __result += VrKeys.TurnInput + VrKeys.SpinInput;
             }
         }
 

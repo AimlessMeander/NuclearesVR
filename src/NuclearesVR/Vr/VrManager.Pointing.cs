@@ -246,6 +246,8 @@ namespace NuclearesVR.Vr
                 }
             }
 
+            UpdateInventorySpin(wantDown && allowed);
+
             if (wantDown != _mouseDown)
             {
                 mouse_event(wantDown ? MouseLeftDown : MouseLeftUp, 0, 0, 0, System.UIntPtr.Zero);
@@ -284,8 +286,7 @@ namespace NuclearesVR.Vr
             }
             AddMapped(LeftHand.Grip, Plugin.KeyLeftGrip.Value);
             AddMapped(RightHand.Grip, Plugin.KeyRightGrip.Value);
-            AddMapped(LeftHand.StickClick, Plugin.KeyLeftStick.Value);
-            AddMapped(RightHand.StickClick, Plugin.KeyRightStick.Value);
+            MapStickClicks();
             VrKeys.Apply(_wantedKeys);
 
             VrKeys.SetAim(allowed && hand.PoseValid, hand.WorldPos, hand.WorldRot,
@@ -332,6 +333,56 @@ namespace NuclearesVR.Vr
             return current;
         }
 
+        // Left stick click = run (held). Right stick click = its key (Geiger counter), pressed when released. Both
+        // together = the inventory key, pulsed once when the second stick joins. The right click waits for the
+        // release so that a two-stick press for the inventory does not also fire the Geiger counter.
+        private bool _stickChordLatched, _previousRightClick;
+        private int _pulseFrames;
+        private KeyCode _pulseKey;
+
+        private void MapStickClicks()
+        {
+            var left = LeftHand.StickClick;
+            var right = RightHand.StickClick;
+            if (left && right && !_stickChordLatched)
+            {
+                _stickChordLatched = true;
+                StartKeyPulse(Plugin.KeyInventory.Value);
+            }
+            if (!left && !right)
+            {
+                _stickChordLatched = false;
+            }
+            if (_previousRightClick && !right && !_stickChordLatched)
+            {
+                StartKeyPulse(Plugin.KeyRightStick.Value);
+            }
+            _previousRightClick = right;
+
+            if (!_stickChordLatched)
+            {
+                AddMapped(left, Plugin.KeyLeftStick.Value);
+            }
+            if (_pulseFrames > 0)
+            {
+                _pulseFrames--;
+                if (_pulseKey != KeyCode.None)
+                {
+                    _wantedKeys.Add(_pulseKey);
+                }
+            }
+        }
+
+        private void StartKeyPulse(KeyCode key)
+        {
+            if (key == KeyCode.None)
+            {
+                return;
+            }
+            _pulseKey = key;
+            _pulseFrames = 3;
+        }
+
         private void AddMapped(bool pressed, KeyCode key)
         {
             if (pressed && key != KeyCode.None)
@@ -357,6 +408,7 @@ namespace NuclearesVR.Vr
                 return;
             }
             _mainCamera.transform.SetPositionAndRotation(hand.WorldPos, hand.WorldRot);
+            AimInventoryCamera(hand.WorldPos, hand.WorldRot);
             _pointerPoseApplied = true;
             CenterCursor();
         }
@@ -364,6 +416,7 @@ namespace NuclearesVR.Vr
         /// <summary>Undo <see cref="ApplyPointerPose"/> before the game's scripts run.</summary>
         private void RestorePointerPose()
         {
+            RestoreInventoryCamera();
             if (!_pointerPoseApplied)
             {
                 return;

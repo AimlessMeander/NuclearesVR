@@ -253,6 +253,16 @@ namespace NuclearesVR.Vr
             {
                 return;
             }
+            if (_craneViewSource != null)
+            {
+                // The headset sits at a camera of its own (crane outside view, inventory): the hand is where
+                // it is relative to the head, placed relative to that camera.
+                var view = _craneViewSource;
+                var flat = Quaternion.Euler(0f, view.eulerAngles.y, 0f);
+                hand.WorldPos = view.position + flat * (MapPosition(hand.TrackPos) - _headDeltaPos);
+                hand.WorldRot = view.rotation * MapRotation(hand.TrackRot) * pitch;
+                return;
+            }
             var localPos = _baseLocalPosition + MapPosition(hand.TrackPos);
             var localRot = _savedBaseRotation * MapRotation(hand.TrackRot) * pitch;
             hand.WorldPos = parent != null ? parent.TransformPoint(localPos) : localPos;

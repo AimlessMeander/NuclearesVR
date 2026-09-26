@@ -49,7 +49,7 @@ namespace NuclearesVR
         internal static ConfigEntry<int> EyeMsaa;
         internal static ConfigEntry<float> RenderScale;
         internal static ConfigEntry<KeyCode> KeyA, KeyB, KeyX, KeyXAlso, KeyY;
-        internal static ConfigEntry<KeyCode> KeyLeftGrip, KeyRightGrip, KeyLeftStick, KeyRightStick;
+        internal static ConfigEntry<KeyCode> KeyLeftGrip, KeyRightGrip, KeyLeftStick, KeyRightStick, KeyInventory;
 
         private Harmony _harmony;
 
@@ -131,7 +131,8 @@ namespace NuclearesVR
             KeyLeftGrip = Config.Bind("Buttons", "LeftGrip", KeyCode.None, keys);
             KeyRightGrip = Config.Bind("Buttons", "RightGrip", KeyCode.None, keys);
             KeyLeftStick = Config.Bind("Buttons", "LeftStickClick", KeyCode.LeftShift, keys + " Default: run.");
-            KeyRightStick = Config.Bind("Buttons", "RightStickClick", KeyCode.G, keys + " Default: Geiger counter.");
+            KeyRightStick = Config.Bind("Buttons", "RightStickClick", KeyCode.G, keys + " Default: Geiger counter (pressed when you let go, so it does not fire during the two-stick inventory press).");
+            KeyInventory = Config.Bind("Buttons", "BothSticksClick", KeyCode.I, keys + " Pressing both stick clicks together. Default: inventory.");
             Logger.LogInfo($"{Name} {Version} loading...");
 
             _harmony = new Harmony(Guid);
