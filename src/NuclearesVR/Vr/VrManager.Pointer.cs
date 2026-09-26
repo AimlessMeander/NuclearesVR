@@ -93,7 +93,7 @@ namespace NuclearesVR.Vr
             if (_mirrorQuad != null)
             {
                 _mirrorQuad.transform.SetParent(camera, worldPositionStays: false);
-                _mirrorQuad.transform.localPosition = new Vector3(0f, 0f, MirrorScreenDistance);
+                _mirrorQuad.transform.localPosition = new Vector3(0f, MirrorScreenOffsetY, MirrorScreenDistance);
                 _mirrorQuad.transform.localRotation = Quaternion.identity;
             }
             ParentInfoPanel(camera);
@@ -125,7 +125,7 @@ namespace NuclearesVR.Vr
                 var v = Mathf.Clamp01(Input.mousePosition.y / Screen.height);
                 var width = MirrorScreenHeight * Screen.width / Screen.height;
                 _cursorArrow.transform.localPosition =
-                    new Vector3((u - 0.5f) * width, (v - 0.5f) * MirrorScreenHeight, MirrorScreenDistance - 0.003f);
+                    new Vector3((u - 0.5f) * width, (v - 0.5f) * MirrorScreenHeight + MirrorScreenOffsetY, MirrorScreenDistance - 0.003f);
             }
 
             var showMarker = false;
