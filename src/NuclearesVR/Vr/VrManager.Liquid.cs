@@ -120,6 +120,8 @@ namespace NuclearesVR.Vr
         private static readonly System.Reflection.FieldInfo SecurityCamerasField =
             HarmonyLib.AccessTools.Field(typeof(controlVideoVigilancia), "Camaras");
         private readonly System.Collections.Generic.Dictionary<Camera, int> _securityCameraMasks = new System.Collections.Generic.Dictionary<Camera, int>();
+        private readonly System.Collections.Generic.List<Action> _securityRestore = new System.Collections.Generic.List<Action>();
+        private readonly System.Collections.Generic.HashSet<Camera> _securityLightened = new System.Collections.Generic.HashSet<Camera>();
         private readonly System.Collections.Generic.List<Behaviour> _securityPostProcessing = new System.Collections.Generic.List<Behaviour>();
         private readonly System.Collections.Generic.Dictionary<Camera, CameraType> _securityCameraTypes = new System.Collections.Generic.Dictionary<Camera, CameraType>();
 
@@ -139,6 +141,10 @@ namespace NuclearesVR.Vr
                 }
                 foreach (var camera in cameras)
                 {
+                    if (camera != null && Plugin.SecurityCameraLightMode.Value && _securityLightened.Add(camera))
+                    {
+                        LightenSecurityCamera(camera);
+                    }
                     // Post-processing on the CCTV cameras (ambient occlusion, reflections...) keeps per-camera
                     // textures and compute work, and switching the CCTV on crashed the graphics driver with it
                     // running alongside the headset cameras. The CCTV pictures come out plain instead.
@@ -174,8 +180,46 @@ namespace NuclearesVR.Vr
             }
         }
 
+        // Draw the CCTV cameras more cheaply: Forward instead of Deferred, a shorter view distance, and no
+        // shadows from the extra light the game switches on for each camera while it draws.
+        private void LightenSecurityCamera(Camera camera)
+        {
+            var path = camera.renderingPath;
+            var far = camera.farClipPlane;
+            camera.renderingPath = RenderingPath.Forward;
+            camera.farClipPlane = Mathf.Min(far, 150f);
+            _securityRestore.Add(() =>
+            {
+                if (camera != null)
+                {
+                    camera.renderingPath = path;
+                    camera.farClipPlane = far;
+                }
+            });
+            var light = camera.GetComponent<CanaraDeVideovigilancia>()?.GetLuzRealtimeAsociada();
+            if (light != null)
+            {
+                var shadows = light.shadows;
+                light.shadows = LightShadows.None;
+                _securityRestore.Add(() =>
+                {
+                    if (light != null)
+                    {
+                        light.shadows = shadows;
+                    }
+                });
+            }
+            Plugin.Logger.LogInfo($"[cctv] '{camera.name}' lightened: Forward path, far {Mathf.Min(far, 150f):F0}, light shadows {(light != null ? "off" : "(no light)")}.");
+        }
+
         private void RestoreSecurityCameraMasks()
         {
+            foreach (var undo in _securityRestore)
+            {
+                undo();
+            }
+            _securityRestore.Clear();
+            _securityLightened.Clear();
             foreach (var pair in _securityCameraMasks)
             {
                 if (pair.Key != null)
