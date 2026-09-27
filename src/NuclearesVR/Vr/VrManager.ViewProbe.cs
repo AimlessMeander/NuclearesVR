@@ -68,6 +68,8 @@ namespace NuclearesVR.Vr
             _benchRunning = true; // also keeps dynamic resolution from changing things
             var log = Plugin.Logger;
             log.LogInfo("[probe] starting - keep still, looking at the slow view, for about a minute.");
+            log.LogInfo($"[probe] adaptive detail limit {(_densityLimit < float.MaxValue ? _densityLimit.ToString("F1") : "off")} (held while the probe runs), " +
+                        $"far small objects hidden {_farHiddenCount}/{_farCandidates.Length}, smoothed GPU time {_gpuAverage:F1} ms, TargetGpuMs {Plugin.FarObjectTargetGpuMs.Value:F1}.");
 
             // ---- what is being drawn ----
             var head = _leftEyeCamera != null ? _leftEyeCamera.transform.position : Vector3.zero;

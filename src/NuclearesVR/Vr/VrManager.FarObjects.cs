@@ -139,7 +139,7 @@ namespace NuclearesVR.Vr
                 _densityLimit = float.MaxValue;
                 return;
             }
-            if (Time.unscaledTime < _nextDensityStep)
+            if (Time.unscaledTime < _nextDensityStep || _probeRunning || _benchRunning)
             {
                 return;
             }
