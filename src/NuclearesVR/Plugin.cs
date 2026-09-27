@@ -111,8 +111,9 @@ namespace NuclearesVR
                                       "The plant has thousands of tiny objects (bolts, fittings, lamps) that are each a separate draw call, drawn once per eye; measured at the worst view, " +
                                       "the 3,000 that were over 100 m away cost about half of the frame time. Big objects such as walls are not affected. 0 = draw everything.",
                     new AcceptableValueRange<float>(0f, 400f)));
-            FarSmallObjectSize = Config.Bind("Graphics", "FarSmallObjectSize", 12f,
-                new ConfigDescription("What counts as a small object for FarSmallObjectDistance: an object whose bounding box is smaller than this many metres across (corner to corner).",
+            FarSmallObjectSize = Config.Bind("Graphics", "FarSmallObjectSize", 6f,
+                new ConfigDescription("What counts as a small object for FarSmallObjectDistance: an object whose bounding box is smaller than this many metres across (corner to corner). " +
+                                      "Lower it to keep more large pipes and machine parts drawn at a distance, at some cost to frame rate; raise it to hide more and gain frame rate.",
                     new AcceptableValueRange<float>(1f, 60f)));
             SecurityCameras = Config.Bind("Graphics", "SecurityCameras", false,
                 "Whether the game draws the CCTV system's cameras while VR runs. false (default) = the CCTV screens stay black in VR. " +
