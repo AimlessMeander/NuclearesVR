@@ -65,12 +65,11 @@ namespace NuclearesVR.Vr
         private IEnumerator RunViewProbe()
         {
             _probeRunning = true;
-            _benchRunning = true; // also keeps dynamic resolution from changing things
+            _benchRunning = true;
             var log = Plugin.Logger;
             log.LogInfo("[probe] starting - keep still, looking at the slow view, for about a minute.");
             PlayCue(1, "Probe started: keep still until you hear three beeps.");
-            log.LogInfo($"[probe] adaptive detail limit {(_densityLimit < float.MaxValue ? _densityLimit.ToString("F1") : "off")} (held while the probe runs), boost {_cullBoost:F2}, " +
-                        $"far small objects hidden {_farHiddenCount}/{_farCandidates.Length}, smoothed GPU time {_gpuAverage:F1} ms, TargetGpuMs {Plugin.FarObjectTargetGpuMs.Value:F1}.");
+            log.LogInfo($"[probe] far small objects hidden {_farHiddenCount}/{_farCandidates.Length}.");
 
             // ---- what is being drawn ----
             var head = _leftEyeCamera != null ? _leftEyeCamera.transform.position : Vector3.zero;

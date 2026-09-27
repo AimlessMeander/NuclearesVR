@@ -95,7 +95,7 @@ namespace NuclearesVR.Vr
             }
 
             var fps = _perfFrames / elapsed;
-            var text = $"[perf] game {fps:F1} fps ({1000f / Mathf.Max(fps, 0.01f):F1} ms/frame), vsync={QualitySettings.vSyncCount}, far small objects hidden {_farHiddenCount}/{_farCandidates.Length} (detail limit {(_densityLimit < float.MaxValue ? _densityLimit.ToString("F0") : "off")}, boost {_cullBoost:F2}), graphics memory {UnityEngine.Profiling.Profiler.GetAllocatedMemoryForGraphicsDriver() / 1048576} MB, render textures {Resources.FindObjectsOfTypeAll<RenderTexture>().Length}";
+            var text = $"[perf] game {fps:F1} fps ({1000f / Mathf.Max(fps, 0.01f):F1} ms/frame), vsync={QualitySettings.vSyncCount}, far small objects hidden {_farHiddenCount}/{_farCandidates.Length}, graphics memory {UnityEngine.Profiling.Profiler.GetAllocatedMemoryForGraphicsDriver() / 1048576} MB, render textures {Resources.FindObjectsOfTypeAll<RenderTexture>().Length}";
             try
             {
                 var error = ETrackedPropertyError.TrackedProp_Success;

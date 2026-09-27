@@ -134,17 +134,13 @@ smoothing snaps a frame that is a little over budget to exactly half rate (45 at
 - **Occlusion culling on the eyes** (on): saved roughly half the cost of a busy view.
 - **Default-layer draw distance** (150 m): almost everything is on that layer; other layers keep the far plane.
 - **Shadow distance 60 m** in VR (game default 200): each eye re-draws all geometry in range into its shadow map.
-- **Far small objects hidden** (under 12 m across, nearest point over 100 m, and also under 0.6 degrees on screen):
-  the worst views showed about 3,000 such objects over 100 m away costing half the frame. Cached bounds (re-read
-  before hiding, since some objects had moved), re-checked in slices, `forceRenderingOff`. The angle test keeps big
-  things such as pipes and pump bodies drawn: the plant is larger than it looks, and a plain 100 m cut-off hid them.
-  The probe (Ctrl+Shift+V) showed the real cost is objects that are tiny on screen but very detailed (the plant reuses
-  a 64,000-vertex nut/fixture mesh hundreds of times; pump motors are 230,000). So an adaptive limit (`TargetGpuMs`)
-  reads SteamVR's GPU time four times a second and, while it is over target, also leaves undrawn objects whose
-  vertices-per-covered-pixel exceed a limit that tightens (200 down to 1) and relaxes again, densest first; never
-  within 4 m. A second probe (with the limit at 1: 2.6M vertices on screen instead of 33M, still 16 ms) showed the
-  remaining cost is the NUMBER of objects drawn (about 5 microseconds of GPU per draw, two eyes), so once the
-  density limit is at its floor a second stage moves the distance and size limits to 25 m and 3 degrees.
+- **Far small objects hidden** (under 12 m across, nearest point over 100 m): the worst views showed about 3,000
+  such objects over 100 m away costing half the frame. Cached bounds (re-read just before hiding one, since some
+  objects had moved), re-checked in slices, `forceRenderingOff`. Cost: some far pipes and pump parts are missing.
+  Tried and removed (see git history, commits `1cfa45e`..`ea3493b`): hiding by apparent size, by vertices per pixel,
+  and an adaptive version driven by GPU time. The probe (Ctrl+Shift+V) showed the cost is the NUMBER of objects
+  drawn (about 5 microseconds of GPU each, two eyes), not their vertices; the adaptive versions kept the frame rate
+  no higher while removing big things such as the control-room alarm panels.
 - **Water reflection** (`NVWaterShaders.OnWillRenderObject`) renders an extra mirrored scene pass per camera
   that sees the water: the right eye reuses the left eye's, refreshed every 2nd frame.
 - **Water simulation (ZibraAI):** the game's fluid simulation crashed the game at random in VR (a null read inside
