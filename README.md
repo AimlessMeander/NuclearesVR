@@ -134,8 +134,10 @@ smoothing snaps a frame that is a little over budget to exactly half rate (45 at
 - **Occlusion culling on the eyes** (on): saved roughly half the cost of a busy view.
 - **Default-layer draw distance** (150 m): almost everything is on that layer; other layers keep the far plane.
 - **Shadow distance 60 m** in VR (game default 200): each eye re-draws all geometry in range into its shadow map.
-- **Far small objects hidden** (under 12 m across, nearest point over 100 m): the worst views showed about 3,000
-  such objects over 100 m away costing half the frame. Cached bounds, re-checked in slices, `forceRenderingOff`.
+- **Far small objects hidden** (under 12 m across, nearest point over 100 m, and also under 0.6 degrees on screen):
+  the worst views showed about 3,000 such objects over 100 m away costing half the frame. Cached bounds (re-read
+  before hiding, since some objects had moved), re-checked in slices, `forceRenderingOff`. The angle test keeps big
+  things such as pipes and pump bodies drawn: the plant is larger than it looks, and a plain 100 m cut-off hid them.
 - **Water reflection** (`NVWaterShaders.OnWillRenderObject`) renders an extra mirrored scene pass per camera
   that sees the water: the right eye reuses the left eye's, refreshed every 2nd frame.
 - **Water simulation (ZibraAI):** the game's fluid simulation crashed the game at random in VR (a null read inside

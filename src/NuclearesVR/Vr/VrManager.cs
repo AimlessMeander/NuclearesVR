@@ -197,7 +197,6 @@ namespace NuclearesVR.Vr
             StopFarSmallObjects();
             RestoreVSync();
             RestoreShadowDistance();
-            RestoreLodBias();
             RestoreSynchroscopeLight();
             RestoreSimulatedWaterSetting();
             ReleaseControllerActions();
@@ -892,7 +891,6 @@ namespace NuclearesVR.Vr
                 UpdateVrInput();
                 ApplyVSyncPolicy();
                 ApplyShadowPolicy();
-                ApplyLodPolicy();
                 FixSynchroscopeLight();
                 UpdateFarSmallObjects();
                 LogPerformance();

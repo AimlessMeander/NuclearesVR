@@ -51,6 +51,7 @@ namespace NuclearesVR.Vr
 
             var p = _leftEyeCamera.transform.position;
             var limitSquared = distance * distance;
+            var tanLimit = Mathf.Tan(Plugin.FarSmallObjectMaxAngle.Value * Mathf.Deg2Rad);
             var slice = count / 6 + 1; // every object is re-checked about every 6 frames
             for (var n = 0; n < slice; n++)
             {
@@ -60,19 +61,14 @@ namespace NuclearesVR.Vr
                 }
                 var i = _farCursor++;
 
-                // Squared distance from the camera to the nearest point of the object's bounds.
                 var c = _farCenters[i];
                 var e = _farExtents[i];
-                var dx = Mathf.Max(Mathf.Abs(p.x - c.x) - e.x, 0f);
-                var dy = Mathf.Max(Mathf.Abs(p.y - c.y) - e.y, 0f);
-                var dz = Mathf.Max(Mathf.Abs(p.z - c.z) - e.z, 0f);
-                var far = dx * dx + dy * dy + dz * dz > limitSquared;
+                var far = IsFar(p, c, e, limitSquared, tanLimit);
                 var renderer = _farCandidates[i];
                 if (far && renderer != null)
                 {
-                    // The bounds were cached when the list was built. Some objects (pipe pieces, machine parts that are
-                    // built or moved after that) had different bounds then, and were hidden while right in front of the
-                    // player. Before hiding one, look at where it is NOW.
+                    // The bounds were cached when the list was built. Some objects (parts that are built or moved
+                    // after that) had different bounds then. Before hiding one, look at where it is NOW.
                     var fresh = renderer.bounds;
                     if ((fresh.center - c).sqrMagnitude > 4f || (fresh.extents - e).sqrMagnitude > 4f)
                     {
@@ -82,17 +78,10 @@ namespace NuclearesVR.Vr
                         }
                         _farCenters[i] = c = fresh.center;
                         _farExtents[i] = e = fresh.extents;
-                        dx = Mathf.Max(Mathf.Abs(p.x - c.x) - e.x, 0f);
-                        dy = Mathf.Max(Mathf.Abs(p.y - c.y) - e.y, 0f);
-                        dz = Mathf.Max(Mathf.Abs(p.z - c.z) - e.z, 0f);
-                        far = dx * dx + dy * dy + dz * dz > limitSquared;
+                        far = IsFar(p, c, e, limitSquared, tanLimit);
                     }
                 }
-                if (far == _farHidden[i])
-                {
-                    continue;
-                }
-                if (renderer == null)
+                if (far == _farHidden[i] || renderer == null)
                 {
                     continue;
                 }
@@ -100,6 +89,25 @@ namespace NuclearesVR.Vr
                 _farHidden[i] = far;
                 _farHiddenCount += far ? 1 : -1;
             }
+        }
+
+        /// <summary>
+        /// Hide only what is both far (nearest point of its bounds beyond the set distance) and small on screen
+        /// (its size seen from there under the set angle). A big pipe or pump stays drawn well past the distance;
+        /// bolts and lamps do not.
+        /// </summary>
+        private static bool IsFar(Vector3 p, Vector3 c, Vector3 e, float limitSquared, float tanLimit)
+        {
+            var dx = Mathf.Max(Mathf.Abs(p.x - c.x) - e.x, 0f);
+            var dy = Mathf.Max(Mathf.Abs(p.y - c.y) - e.y, 0f);
+            var dz = Mathf.Max(Mathf.Abs(p.z - c.z) - e.z, 0f);
+            var d2 = dx * dx + dy * dy + dz * dz;
+            if (d2 <= limitSquared)
+            {
+                return false;
+            }
+            var size = 2f * e.magnitude;
+            return size * size < d2 * tanLimit * tanLimit;
         }
 
         private IEnumerator ScanFarCandidates()

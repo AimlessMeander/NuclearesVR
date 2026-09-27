@@ -80,9 +80,11 @@ SETTINGS
    RenderScale .......... Picture sharpness: 1.0 (default). Try 1.2 - 1.5 for a sharper picture if
                           your graphics card can take it.
    ShadowDistance ....... How far shadows are drawn in VR (default 60 metres; the game uses 200).
-   FarSmallObjectDistance  Small objects farther than this (default 100 m) are not drawn in the headset.
+   FarSmallObjectDistance  Small objects farther than this (default 100 m) are not drawn in the headset,
+                          but only if they also look tiny from where you are (FarSmallObjectMaxAngle).
                           This is what keeps the frame rate up when you look across the plant.
-                          If distant machinery seems to be missing, raise it (or set 0 to draw everything).
+                          If distant machinery seems to be missing, lower FarSmallObjectMaxAngle, raise
+                          the distance, or set the distance to 0 to draw everything.
    EyeDefaultLayerDistance How far most scenery is drawn in the headset (default 150 m).
    EyeOcclusionCulling .. Skips objects hidden behind walls (default on). Turn off if walls flicker.
    MonitorView .......... What the monitor shows in VR: Headset (default, the headset's view), Black
