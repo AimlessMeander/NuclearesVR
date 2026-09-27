@@ -138,6 +138,11 @@ smoothing snaps a frame that is a little over budget to exactly half rate (45 at
   the worst views showed about 3,000 such objects over 100 m away costing half the frame. Cached bounds (re-read
   before hiding, since some objects had moved), re-checked in slices, `forceRenderingOff`. The angle test keeps big
   things such as pipes and pump bodies drawn: the plant is larger than it looks, and a plain 100 m cut-off hid them.
+  The probe (Ctrl+Shift+V) showed the real cost is objects that are tiny on screen but very detailed (the plant reuses
+  a 64,000-vertex nut/fixture mesh hundreds of times; pump motors are 230,000). So an adaptive limit (`TargetGpuMs`)
+  reads SteamVR's GPU time four times a second and, while it is over target, also leaves undrawn objects whose
+  vertices-per-covered-pixel exceed a limit that tightens (200 down to 1) and relaxes again, densest first; never
+  within 4 m.
 - **Water reflection** (`NVWaterShaders.OnWillRenderObject`) renders an extra mirrored scene pass per camera
   that sees the water: the right eye reuses the left eye's, refreshed every 2nd frame.
 - **Water simulation (ZibraAI):** the game's fluid simulation crashed the game at random in VR (a null read inside

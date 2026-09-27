@@ -85,6 +85,9 @@ SETTINGS
                           This is what keeps the frame rate up when you look across the plant.
                           If distant machinery seems to be missing, lower FarSmallObjectMaxAngle, raise
                           the distance, or set the distance to 0 to draw everything.
+   TargetGpuMs .......... Adaptive detail (default 8). If the GPU takes longer than this per frame, tiny
+                          very detailed objects far away (nuts, fittings) stop being drawn, until there is
+                          room again. Nothing near you or large is affected. 0 = off.
    EyeDefaultLayerDistance How far most scenery is drawn in the headset (default 150 m).
    EyeOcclusionCulling .. Skips objects hidden behind walls (default on). Turn off if walls flicker.
    MonitorView .......... What the monitor shows in VR: Headset (default, the headset's view), Black

@@ -46,6 +46,7 @@ namespace NuclearesVR
         internal static ConfigEntry<float> FarSmallObjectDistance;
         internal static ConfigEntry<float> FarSmallObjectSize;
         internal static ConfigEntry<float> FarSmallObjectMaxAngle;
+        internal static ConfigEntry<float> FarObjectTargetGpuMs;
         internal static ConfigEntry<bool> ShareWaterReflection;
         internal static ConfigEntry<int> WaterReflectionEveryNthFrame;
         internal static ConfigEntry<int> EyeMsaa;
@@ -103,6 +104,10 @@ namespace NuclearesVR
                                       "This is how far away (metres) objects on that layer are still drawn in the headset. Terrain, sky and other layers keep the game's own draw distance. " +
                                       "0 = no limit (slower, but nothing distant disappears).",
                     new AcceptableValueRange<float>(0f, 1000f)));
+            FarObjectTargetGpuMs = Config.Bind("Graphics", "TargetGpuMs", 8f,
+                new ConfigDescription("Adaptive detail. When the GPU takes longer than this many milliseconds per frame (11.1 ms is the limit at 90 Hz), the mod stops drawing small objects whose geometry is far denser than the pixels they cover " +
+                                      "(the plant's tiny, very detailed nuts and fixtures far away), densest first, and brings them back when there is room. Big and nearby things are never affected. Lower = smoother but more objects vanish in heavy views. 0 = off.",
+                    new AcceptableValueRange<float>(0f, 20f)));
             FarSmallObjectMaxAngle = Config.Bind("Graphics", "FarSmallObjectMaxAngle", 0.6f,
                 new ConfigDescription("With FarSmallObjectDistance: a far object is only left undrawn if it also looks smaller than this many degrees from where you are (0.6 degrees is a 10 cm bolt at 10 m, or a 1 m fitting at 100 m). " +
                                       "Raise it to hide more (faster, but pipes and machine parts may go missing at a distance); lower it if parts are missing.",
