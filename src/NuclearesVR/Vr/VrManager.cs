@@ -1038,6 +1038,7 @@ namespace NuclearesVR.Vr
                     {
                         LogThrottled("submit-error", $"Compositor.Submit returned an error: left={leftErr}, right={rightErr}");
                     }
+                    Stage("after Submit (game's own Update/physics/rendering runs next)");
                 }
                 catch (Exception ex)
                 {
