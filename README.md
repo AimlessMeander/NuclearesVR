@@ -8,7 +8,11 @@ them to textures, and submits those to SteamVR's compositor itself.
 
 ## Status
 
-Working, tested on hardware (Quest 3 over Steam Link / SteamVR, RTX 4090). The game runs at about 90 fps.
+Working, tested on hardware. The game runs at about 90 fps.
+
+Tested on: Quest 3 over Steam Link (Wi-Fi), SteamVR, Windows 11, Intel Core i9-14900K, 32 GB RAM,
+RTX 4090 (driver 616.56). Untested on other hardware; if things run differently for you, especially
+performance or the freeze below, that difference in hardware is a likely reason.
 
 - Stereo rendering and 6DoF head tracking (orientation and position).
 - VR only runs while a game is loaded: the start menu is a normal 2D window, VR starts on loading a
@@ -32,6 +36,12 @@ Working, tested on hardware (Quest 3 over Steam Link / SteamVR, RTX 4090). The g
 - **Inventory:** the game's ring of 3D crates and its 2D buttons show on the virtual screen; dragging spins the ring.
 
 Known issues:
+- **A rare freeze, possibly fixed.** SteamVR's own logs showed Steam Link's video encoder (NVENC) losing sync
+  and never recovering, a few seconds to tens of minutes into a session, unrelated to any driver crash. It stopped
+  after turning the headset view's anti-aliasing off (`Msaa`, now 1 by default); MSAA changes the exact texture
+  format handed to SteamVR each frame, so this points at that handoff, though it is not proven. If you still see
+  a freeze, please open an issue with `BepInEx/LogOutput.log` (look for `[stall]` and `[watchdog]` lines) and,
+  if you can find them, the SteamVR logs (`<Steam>/logs/vrserver.txt` and `vrcompositor.txt`) from around the time.
 - **Use a new save.** The mod has not been tested on existing saves.
 - **Chemical systems are untested** (only played with them switched off).
 - If your head or hands end up in a strange position or orientation (usually after using a keypad or a

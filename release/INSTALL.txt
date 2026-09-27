@@ -4,6 +4,8 @@ NUCLEARES VR MOD  -  install guide
 This is an unofficial mod that lets you play Nucleares (Steam) in a VR headset through SteamVR,
 with head tracking and motion controllers. Nucleares itself has no VR support; this adds it.
 
+Project page and bug reports: https://github.com/AimlessMeander/NuclearesVR
+
 WHAT YOU NEED
 -------------
  * Nucleares, installed from Steam (Windows).
@@ -104,6 +106,10 @@ SETTINGS
 
 KNOWN LIMITS
 ------------
+ * A rare freeze, possibly fixed: the headset's video stream could lose sync and never recover, a few seconds
+   to tens of minutes into a session. It stopped after turning the headset view's anti-aliasing off (Msaa,
+   now 1 by default), though this is not proven. If you still see a freeze, please report it (see below) with
+   your BepInEx/LogOutput.log file.
  * Use a NEW save. The mod has not been tested on existing saves, so do not risk one you care about.
  * The chemical systems have not been tested (only played with them switched off).
  * If your head or hands end up in a strange position or orientation (usually after using a keypad

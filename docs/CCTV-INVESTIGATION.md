@@ -100,3 +100,24 @@ the NVIDIA driver (`nvwgf2umx.dll`). The same Zibra offset also crashed the game
 else unusual happening. So the CCTV crash may really have been this Zibra crash, with the CCTV cameras only a reliable
 way to trigger it. The mod now switches the game to its flat water while VR runs (`VrManager.Water.cs`).
 If the CCTV is ever retried, do it with the water simulation off first. Not yet tested.
+
+## Update: a second, unrelated freeze (2026-09-27)
+
+Separately from the Zibra crash above, freezes kept happening after the water fix, with no driver crash and no
+Zibra involvement. Reading SteamVR's own logs (`<Steam>/logs/vrserver.txt`, `vrcompositor.txt`) during these showed
+Steam Link's video encoder (NVENC) losing sync ("Timed out waiting for another accepted video packet", repeated
+"Starting NVENC reset") and never recovering. Ruled out: the `-force-gfx-direct` launch option (tested clean once,
+then froze the same way several times without it - the one clean run was luck, not a fix), other apps using the
+encoder, Windows' GPU scheduling toggle (not available on this system), and the game being left in the background
+(it wasn't). Per-frame timing added to the mod (`VrManager.Watchdog.cs`, the `[stall]` log lines) showed the mod's
+own steps (screen capture, `Submit`, the far-object scan) always cost a fraction of a millisecond; every stall was
+inside SteamVR's own blocking calls (`WaitGetPoses`, the wait for the previous frame to finish), pointing at the
+frame handoff to SteamVR/the graphics driver, not at anything slow in the mod's C# code.
+
+Setting `Msaa` to 1 (off; it had been 4) stopped the freezes across several sessions, so that is now the default.
+MSAA changes the exact texture format `Submit` hands to SteamVR each frame, so this is consistent with something
+in that handoff, though it is not proven - a false negative (freezes just not recurring yet) remains possible.
+If this is ever revisited: the stall logging is still in the mod (harmless overhead, a background thread and a
+timer around each frame step), so a future freeze will already have `[stall]` lines in the log. The real fix, if
+`Msaa` is not the whole story, is likely submitting the eye textures from Unity's own render thread instead of the
+main thread (would need a small native plugin); this was not attempted.

@@ -123,8 +123,10 @@ namespace NuclearesVR
                 "true = the right eye reuses the left eye's reflection, and the reflection is refreshed only every few frames.");
             WaterReflectionEveryNthFrame = Config.Bind("Graphics", "WaterReflectionEveryNthFrame", 2,
                 new ConfigDescription("With ShareWaterReflection on: refresh the water reflection every this many frames (1 = every frame, 2 = every other frame...).", new AcceptableValueRange<int>(1, 8)));
-            EyeMsaa = Config.Bind("Graphics", "Msaa", 4,
-                new ConfigDescription("Anti-aliasing (MSAA samples) for the headset view: 1 = off, 2, 4 or 8. Smooths jagged edges; costs GPU time. Applied when a game loads.",
+            EyeMsaa = Config.Bind("Graphics", "Msaa", 1,
+                new ConfigDescription("Anti-aliasing (MSAA samples) for the headset view: 1 = off, 2, 4 or 8. Default is 1 (off) because a higher value was linked to random freezes on one system " +
+                                      "(SteamVR's video stream to the headset stalling and not recovering - see the README); the game's own post-processing anti-aliasing still runs regardless, so the difference is subtle. " +
+                                      "Raise it if you want smoother edges and do not see freezes. Applied when a game loads.",
                     new AcceptableValueList<int>(1, 2, 4, 8)));
             RenderScale = Config.Bind("Graphics", "RenderScale", 1.0f,
                 new ConfigDescription("Renders the headset view at this multiple of the headset's recommended resolution (1.0 = recommended, 1.3 = sharper and less aliased, more GPU load). Applied when a game loads.",
