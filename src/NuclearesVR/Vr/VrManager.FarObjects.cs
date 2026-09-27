@@ -27,6 +27,7 @@ namespace NuclearesVR.Vr
         private Coroutine _farScan;
         private float _nextFarScan;
         private int _farCursor;
+        private int _farStaleLogged;
 
         private void UpdateFarSmallObjects()
         {
@@ -66,11 +67,31 @@ namespace NuclearesVR.Vr
                 var dy = Mathf.Max(Mathf.Abs(p.y - c.y) - e.y, 0f);
                 var dz = Mathf.Max(Mathf.Abs(p.z - c.z) - e.z, 0f);
                 var far = dx * dx + dy * dy + dz * dz > limitSquared;
+                var renderer = _farCandidates[i];
+                if (far && renderer != null)
+                {
+                    // The bounds were cached when the list was built. Some objects (pipe pieces, machine parts that are
+                    // built or moved after that) had different bounds then, and were hidden while right in front of the
+                    // player. Before hiding one, look at where it is NOW.
+                    var fresh = renderer.bounds;
+                    if ((fresh.center - c).sqrMagnitude > 4f || (fresh.extents - e).sqrMagnitude > 4f)
+                    {
+                        if (_farStaleLogged++ < 12)
+                        {
+                            Plugin.Logger.LogInfo($"Far objects: '{renderer.name}' had out-of-date bounds (centre was {c}, is {fresh.center}).");
+                        }
+                        _farCenters[i] = c = fresh.center;
+                        _farExtents[i] = e = fresh.extents;
+                        dx = Mathf.Max(Mathf.Abs(p.x - c.x) - e.x, 0f);
+                        dy = Mathf.Max(Mathf.Abs(p.y - c.y) - e.y, 0f);
+                        dz = Mathf.Max(Mathf.Abs(p.z - c.z) - e.z, 0f);
+                        far = dx * dx + dy * dy + dz * dz > limitSquared;
+                    }
+                }
                 if (far == _farHidden[i])
                 {
                     continue;
                 }
-                var renderer = _farCandidates[i];
                 if (renderer == null)
                 {
                     continue;
