@@ -43,6 +43,7 @@ namespace NuclearesVR
         internal static ConfigEntry<bool> EyeOcclusionCulling;
         internal static ConfigEntry<float> EyeDefaultLayerDistance;
         internal static ConfigEntry<float> VrShadowDistance;
+        internal static ConfigEntry<float> LodBiasMultiplier;
         internal static ConfigEntry<float> FarSmallObjectDistance;
         internal static ConfigEntry<float> FarSmallObjectSize;
         internal static ConfigEntry<bool> ShareWaterReflection;
@@ -102,6 +103,10 @@ namespace NuclearesVR
                                       "This is how far away (metres) objects on that layer are still drawn in the headset. Terrain, sky and other layers keep the game's own draw distance. " +
                                       "0 = no limit (slower, but nothing distant disappears).",
                     new AcceptableValueRange<float>(0f, 1000f)));
+            LodBiasMultiplier = Config.Bind("Graphics", "LodBiasMultiplier", 1f,
+                new ConfigDescription("Multiplies the game's level-of-detail bias while VR runs. The headset's view is much wider than the game's normal one, so pipes, fittings and machine parts can switch to simpler models, or disappear, " +
+                                      "sooner than on a monitor. If parts go missing up close, raise this (try 2, then 4); higher costs some GPU time. 1 = the game's own setting.",
+                    new AcceptableValueRange<float>(0.5f, 8f)));
             VrShadowDistance = Config.Bind("Graphics", "ShadowDistance", 60f,
                 new ConfigDescription("How far away (metres) shadows are drawn while VR runs; the game's own setting is 200. Every eye re-draws all the geometry within this distance into its shadow map, " +
                                       "and the game's merged plant-wide meshes make that very expensive. Shadows near you are unchanged. 0 = keep the game's own setting.",

@@ -60,6 +60,36 @@ namespace NuclearesVR.Vr
             }
         }
 
+        private float _lodBiasBase = -1f, _lodBiasSet = -1f;
+
+        /// <summary>Scales the level-of-detail bias while VR runs; if the game changes it, that becomes the new base.</summary>
+        private void ApplyLodPolicy()
+        {
+            var multiplier = Plugin.LodBiasMultiplier.Value;
+            var current = QualitySettings.lodBias;
+            if (_lodBiasBase < 0f || (!Mathf.Approximately(current, _lodBiasSet) && !Mathf.Approximately(current, _lodBiasBase)))
+            {
+                _lodBiasBase = current; // first look, or the game applied its own value
+            }
+            var wanted = _lodBiasBase * multiplier;
+            if (!Mathf.Approximately(current, wanted))
+            {
+                QualitySettings.lodBias = wanted;
+                LogThrottled("lodbias", $"LOD bias {current:F2} -> {wanted:F2} while VR runs.");
+            }
+            _lodBiasSet = wanted;
+        }
+
+        private void RestoreLodBias()
+        {
+            if (_lodBiasBase >= 0f)
+            {
+                QualitySettings.lodBias = _lodBiasBase;
+                _lodBiasBase = -1f;
+                _lodBiasSet = -1f;
+            }
+        }
+
         private void RestoreShadowDistance()
         {
             if (_originalShadowDistance >= 0f)
