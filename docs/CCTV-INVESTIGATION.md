@@ -121,3 +121,15 @@ If this is ever revisited: the stall logging is still in the mod (harmless overh
 timer around each frame step), so a future freeze will already have `[stall]` lines in the log. The real fix, if
 `Msaa` is not the whole story, is likely submitting the eye textures from Unity's own render thread instead of the
 main thread (would need a small native plugin); this was not attempted.
+
+## Update: still crashes after the water fix, new crash signature (2026-09-27)
+
+Retested with `SecurityCameras = true` after the water-simulation fix and the freeze fix (`Msaa = 1`) above,
+in case either had incidentally fixed this too. It still crashes instantly. The crash dump this time is a
+different signature from both the Zibra water crash and the driver faults seen in the original investigation:
+the crashing function is `NVENCODEAPI_Thunk` inside `nvwgf2umx.dll` - NVIDIA's own NVENC video-encoder entry
+point, the same component behind the Steam Link freeze investigated the same day (see the "second, unrelated
+freeze" note above). So turning the CCTV cameras on appears to crash the video encoder itself, not just the
+3D renderer. This fits the original theory (many extra cameras resizing one shared set of GPU textures every
+frame) if that churn also corrupts state NVENC is relying on for the headset video stream, but this is not
+confirmed. Still blocked by default (`SecurityCameras = false`).
