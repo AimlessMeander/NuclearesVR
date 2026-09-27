@@ -37,6 +37,10 @@ namespace NuclearesVR.Vr
         private float _densityLimit = float.MaxValue;
         private float _gpuAverage = -1f;
         private float _nextDensityStep;
+        private float _cullBoost;
+        private const float BoostedDistance = 25f;
+        private const float BoostedAngle = 3f;
+        private const float Deg2Rad = Mathf.PI / 180f;
         private const int DensityMinVertices = 3000;
         private const float DensityMinDistanceSquared = 16f; // never within 4 m of you
 
@@ -61,9 +65,13 @@ namespace NuclearesVR.Vr
             }
 
             var p = _leftEyeCamera.transform.position;
-            var limitSquared = distance * distance;
-            var tanLimit = Mathf.Tan(Plugin.FarSmallObjectMaxAngle.Value * Mathf.Deg2Rad);
             UpdateDensityLimit();
+            // Stage two of the adaptive detail (_cullBoost 0..1): the distance and size limits move towards
+            // "beyond 25 m and under 3 degrees" so that hundreds of small objects in the distance stop being drawn.
+            var boostedDistance = Mathf.Lerp(distance, Mathf.Min(distance, BoostedDistance), _cullBoost);
+            var limitSquared = boostedDistance * boostedDistance;
+            var angle = Mathf.Lerp(Plugin.FarSmallObjectMaxAngle.Value, Mathf.Max(Plugin.FarSmallObjectMaxAngle.Value, BoostedAngle), _cullBoost);
+            var tanLimit = Mathf.Tan(angle * Deg2Rad);
             var pixelsPerTan = _leftEyeCamera.projectionMatrix.m00 * (_leftTex != null ? _leftTex.width : 2064) * 0.5f;
             var pixelScale = 0.5f * pixelsPerTan * pixelsPerTan; // pixels covered ~ this * size^2 / distance^2
             var slice = count / 6 + 1; // every object is re-checked about every 6 frames
@@ -137,6 +145,7 @@ namespace NuclearesVR.Vr
             if (target <= 0f)
             {
                 _densityLimit = float.MaxValue;
+                _cullBoost = 0f;
                 return;
             }
             if (Time.unscaledTime < _nextDensityStep || _probeRunning || _benchRunning)
@@ -153,14 +162,32 @@ namespace NuclearesVR.Vr
             _gpuAverage = _gpuAverage < 0f ? gpu : _gpuAverage + 0.4f * (gpu - _gpuAverage);
             if (_gpuAverage > target)
             {
-                _densityLimit = _densityLimit >= float.MaxValue ? 200f : Mathf.Max(_densityLimit * 0.8f, 1f);
-            }
-            else if (_gpuAverage < target * 0.75f && _densityLimit < float.MaxValue)
-            {
-                _densityLimit *= 1.15f;
-                if (_densityLimit > 400f)
+                if (_densityLimit >= float.MaxValue)
                 {
-                    _densityLimit = float.MaxValue;
+                    _densityLimit = 200f;
+                }
+                else if (_densityLimit > 1f)
+                {
+                    _densityLimit = Mathf.Max(_densityLimit * 0.6f, 1f);
+                }
+                else
+                {
+                    _cullBoost = Mathf.Min(_cullBoost + 0.1f, 1f); // the density limit alone was not enough
+                }
+            }
+            else if (_gpuAverage < target * 0.75f)
+            {
+                if (_cullBoost > 0f)
+                {
+                    _cullBoost = Mathf.Max(_cullBoost - 0.03f, 0f);
+                }
+                else if (_densityLimit < float.MaxValue)
+                {
+                    _densityLimit *= 1.15f;
+                    if (_densityLimit > 400f)
+                    {
+                        _densityLimit = float.MaxValue;
+                    }
                 }
             }
         }

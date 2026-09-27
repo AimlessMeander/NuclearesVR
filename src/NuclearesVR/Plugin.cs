@@ -105,8 +105,9 @@ namespace NuclearesVR
                                       "0 = no limit (slower, but nothing distant disappears).",
                     new AcceptableValueRange<float>(0f, 1000f)));
             FarObjectTargetGpuMs = Config.Bind("Graphics", "TargetGpuMs", 8f,
-                new ConfigDescription("Adaptive detail. When the GPU takes longer than this many milliseconds per frame (11.1 ms is the limit at 90 Hz), the mod stops drawing small objects whose geometry is far denser than the pixels they cover " +
-                                      "(the plant's tiny, very detailed nuts and fixtures far away), densest first, and brings them back when there is room. Big and nearby things are never affected. Lower = smoother but more objects vanish in heavy views. 0 = off.",
+                new ConfigDescription("Adaptive detail. When the GPU takes longer than this many milliseconds per frame (11.1 ms is the limit at 90 Hz), the mod first stops drawing tiny, very detailed objects far away, " +
+                                      "then, if that is not enough, small objects beyond 25 m that look under 3 degrees across, and it brings them back when there is room. Big and nearby things are never affected. " +
+                                      "Lower = smoother but more small objects vanish in heavy views. 0 = off.",
                     new AcceptableValueRange<float>(0f, 20f)));
             FarSmallObjectMaxAngle = Config.Bind("Graphics", "FarSmallObjectMaxAngle", 0.6f,
                 new ConfigDescription("With FarSmallObjectDistance: a far object is only left undrawn if it also looks smaller than this many degrees from where you are (0.6 degrees is a 10 cm bolt at 10 m, or a 1 m fitting at 100 m). " +

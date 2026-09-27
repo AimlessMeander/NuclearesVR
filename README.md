@@ -142,7 +142,9 @@ smoothing snaps a frame that is a little over budget to exactly half rate (45 at
   a 64,000-vertex nut/fixture mesh hundreds of times; pump motors are 230,000). So an adaptive limit (`TargetGpuMs`)
   reads SteamVR's GPU time four times a second and, while it is over target, also leaves undrawn objects whose
   vertices-per-covered-pixel exceed a limit that tightens (200 down to 1) and relaxes again, densest first; never
-  within 4 m.
+  within 4 m. A second probe (with the limit at 1: 2.6M vertices on screen instead of 33M, still 16 ms) showed the
+  remaining cost is the NUMBER of objects drawn (about 5 microseconds of GPU per draw, two eyes), so once the
+  density limit is at its floor a second stage moves the distance and size limits to 25 m and 3 degrees.
 - **Water reflection** (`NVWaterShaders.OnWillRenderObject`) renders an extra mirrored scene pass per camera
   that sees the water: the right eye reuses the left eye's, refreshed every 2nd frame.
 - **Water simulation (ZibraAI):** the game's fluid simulation crashed the game at random in VR (a null read inside

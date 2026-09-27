@@ -69,7 +69,7 @@ namespace NuclearesVR.Vr
             var log = Plugin.Logger;
             log.LogInfo("[probe] starting - keep still, looking at the slow view, for about a minute.");
             PlayCue(1, "Probe started: keep still until you hear three beeps.");
-            log.LogInfo($"[probe] adaptive detail limit {(_densityLimit < float.MaxValue ? _densityLimit.ToString("F1") : "off")} (held while the probe runs), " +
+            log.LogInfo($"[probe] adaptive detail limit {(_densityLimit < float.MaxValue ? _densityLimit.ToString("F1") : "off")} (held while the probe runs), boost {_cullBoost:F2}, " +
                         $"far small objects hidden {_farHiddenCount}/{_farCandidates.Length}, smoothed GPU time {_gpuAverage:F1} ms, TargetGpuMs {Plugin.FarObjectTargetGpuMs.Value:F1}.");
 
             // ---- what is being drawn ----
